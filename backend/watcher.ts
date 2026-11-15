@@ -46,11 +46,34 @@ export type RuleAlert = {
 
 const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
 
+/** A numeric entity as text; an out-of-range code point becomes U+FFFD instead of throwing. */
+function codePoint(n: number): string {
+  return Number.isInteger(n) && n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : "�";
+}
+
 function decode(s: string): string {
   return s
-    .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, n: string) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&#(\d+);/g, (_, n: string) => codePoint(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n: string) => codePoint(parseInt(n, 16)))
     .replace(/&([a-z]+);/gi, (m, n: string) => ENTITIES[n.toLowerCase()] ?? m);
+}
+
+/** Only web links are kept; anything else (javascript:, data:, relative) becomes "". */
+function webLink(link: string): string {
+  try {
+    const url = new URL(link.trim());
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * The calendar date in India for an ISO timestamp. Rules are checked on Indian
+ * dates, so an item from 03:00 IST on 15 Nov counts as 15 Nov, not 14 Nov (UTC).
+ */
+export function istDate(iso: string): string {
+  return new Date(Date.parse(iso) + 330 * 60_000).toISOString().slice(0, 10);
 }
 
 /** Text of the first <tag>, with CDATA unwrapped, HTML stripped and entities decoded. */
@@ -73,7 +96,7 @@ export function parseFeed(xml: string): FeedItem[] {
     const atomLink = b.match(/<link[^>]*href="([^"]+)"/i)?.[1];
     return {
       title: field(b, "title"),
-      link: (field(b, "link") || atomLink || "").trim(),
+      link: webLink(field(b, "link") || atomLink || ""),
       published: isoOrNull(field(b, "pubDate") || field(b, "updated") || field(b, "published")),
       text: field(b, "description") || field(b, "summary") || field(b, "content"),
     };
@@ -104,7 +127,7 @@ export function matchItems(
         const rule = getRule(ruleId);
         if (!rule) continue;
         const fresh = item.published
-          ? !rule.last_checked || item.published.slice(0, 10) >= rule.last_checked
+          ? !rule.last_checked || istDate(item.published) >= rule.last_checked
           : isNewUndated(item);
         if (!fresh) continue;
         alerts.push({
@@ -215,7 +238,7 @@ export function openAlerts(): RuleAlert[] {
     if (!rule) return false;
     if (!rule.last_checked) return true;
     // Same-day counts: an item from the day of the check may have come after it.
-    return (a.published ?? a.seenAt).slice(0, 10) >= rule.last_checked;
+    return istDate(a.published ?? a.seenAt) >= rule.last_checked;
   });
 }
 
