@@ -65,29 +65,31 @@ type HoldRow = {
 type ScreeningRow = { hold_id: string; answers: string; eligibility: string; at: string };
 type GrievanceRow = { hold_id: string; filed_at: string; escalation_drafted_at: string | null };
 
-const toMerchant = (r: MerchantRow): Merchant => ({
-  id: r.id,
-  shopName: r.shop_name,
-  ownerName: r.owner_name,
-  city: r.city,
-  language: r.language as Merchant["language"],
-  bankName: r.bank_name,
-  accountLast4: r.account_last4,
-  priorReports: r.prior_reports,
-});
+const toMerchant = (r: MerchantRow): Merchant =>
+  Object.freeze({
+    id: r.id,
+    shopName: r.shop_name,
+    ownerName: r.owner_name,
+    city: r.city,
+    language: r.language as Merchant["language"],
+    bankName: r.bank_name,
+    accountLast4: r.account_last4,
+    priorReports: r.prior_reports,
+  });
 
-const toTxn = (r: TxnRow): Transaction => ({
-  id: r.id,
-  merchantId: r.merchant_id,
-  amountInr: r.amount_inr,
-  at: r.at,
-  payerVpaMasked: r.payer_vpa_masked,
-  settlement:
-    r.settlement_status === "settled"
-      ? { status: "settled", settledAt: r.settled_at ?? "", utr: r.utr ?? "" }
-      : { status: "unsettled" },
-  billId: r.bill_id,
-});
+const toTxn = (r: TxnRow): Transaction =>
+  Object.freeze({
+    id: r.id,
+    merchantId: r.merchant_id,
+    amountInr: r.amount_inr,
+    at: r.at,
+    payerVpaMasked: r.payer_vpa_masked,
+    settlement:
+      r.settlement_status === "settled"
+        ? { status: "settled" as const, settledAt: r.settled_at ?? "", utr: r.utr ?? "" }
+        : { status: "unsettled" as const },
+    billId: r.bill_id,
+  });
 
 /** Tags come back frozen: the record is append-only in code as in SQL. */
 const toTag = (r: TagRow): SaleTag =>
@@ -101,47 +103,52 @@ const toTag = (r: TagRow): SaleTag =>
     ...(r.bill_id ? { billId: r.bill_id } : {}),
   });
 
-const toBill = (r: BillRow): Bill => ({
-  id: r.id,
-  merchantId: r.merchant_id,
-  amountInr: r.amount_inr,
-  text: r.text,
-  items: JSON.parse(r.items) as Bill["items"],
-  createdAt: r.created_at,
-  status: r.status,
-  txnId: r.txn_id,
-});
+const toBill = (r: BillRow): Bill =>
+  Object.freeze({
+    id: r.id,
+    merchantId: r.merchant_id,
+    amountInr: r.amount_inr,
+    text: r.text,
+    items: JSON.parse(r.items) as Bill["items"],
+    createdAt: r.created_at,
+    status: r.status,
+    txnId: r.txn_id,
+  });
 
-const toReport = (r: ReportRow): FraudReport => ({
-  id: r.id,
-  txnId: r.txn_id,
-  ackNo: r.ack_no,
-  reportedAt: r.reported_at,
-  amountInr: r.amount_inr,
-});
+const toReport = (r: ReportRow): FraudReport =>
+  Object.freeze({
+    id: r.id,
+    txnId: r.txn_id,
+    ackNo: r.ack_no,
+    reportedAt: r.reported_at,
+    amountInr: r.amount_inr,
+  });
 
-const toHold = (r: HoldRow): Hold => ({
-  id: r.id,
-  txnId: r.txn_id,
-  type: r.type,
-  scope: r.scope,
-  heldAmountInr: r.held_amount_inr,
-  placedAt: r.placed_at,
-  reference: r.reference,
-});
+const toHold = (r: HoldRow): Hold =>
+  Object.freeze({
+    id: r.id,
+    txnId: r.txn_id,
+    type: r.type,
+    scope: r.scope,
+    heldAmountInr: r.held_amount_inr,
+    placedAt: r.placed_at,
+    reference: r.reference,
+  });
 
-const toScreening = (r: ScreeningRow): Screening => ({
-  holdId: r.hold_id,
-  answers: JSON.parse(r.answers) as Screening["answers"],
-  eligibility: JSON.parse(r.eligibility) as Screening["eligibility"],
-  at: r.at,
-});
+const toScreening = (r: ScreeningRow): Screening =>
+  Object.freeze({
+    holdId: r.hold_id,
+    answers: JSON.parse(r.answers) as Screening["answers"],
+    eligibility: JSON.parse(r.eligibility) as Screening["eligibility"],
+    at: r.at,
+  });
 
-const toGrievance = (r: GrievanceRow): Grievance => ({
-  holdId: r.hold_id,
-  filedAt: r.filed_at,
-  ...(r.escalation_drafted_at ? { escalationDraftedAt: r.escalation_drafted_at } : {}),
-});
+const toGrievance = (r: GrievanceRow): Grievance =>
+  Object.freeze({
+    holdId: r.hold_id,
+    filedAt: r.filed_at,
+    ...(r.escalation_drafted_at ? { escalationDraftedAt: r.escalation_drafted_at } : {}),
+  });
 
 // Every list is ordered by insertion (rowid), as the old in-memory arrays were.
 

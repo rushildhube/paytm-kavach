@@ -2,7 +2,10 @@
  * The SQLite store (backend/db): append-only proof in SQL, bills, and the
  * API actions that write to the database.
  */
-import { beforeEach, describe, expect, it } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { handle } from "@backend/api";
 import { createBill } from "@backend/bills";
 import { db, dbFile, SCHEMA_VERSION } from "@backend/db/connection";
@@ -106,6 +109,57 @@ describe("the database", () => {
     expect(tag).toMatchObject({ txnId: txn.id, source: "voice", boundBy: "tap" });
     expect(tag.items).toEqual([{ name: "cheeni", quantity: 2, unit: "kilo" }]);
     expect("billId" in tag).toBe(false);
+  });
+});
+
+describe("the database across restarts and schema changes", () => {
+  const file = path.join(os.tmpdir(), `kavach-test-${process.pid}.db`);
+  const removeFile = () => {
+    for (const f of [file, `${file}-wal`, `${file}-shm`]) fs.rmSync(f, { force: true });
+  };
+
+  afterEach(() => {
+    process.env.KAVACH_DB = ":memory:";
+    db(); // closes the file handle (Windows keeps open files locked)
+    removeFile();
+  });
+
+  it("reopening an existing file keeps its data and its triggers, without reseeding", () => {
+    removeFile();
+    process.env.KAVACH_DB = file;
+    const txn = recordPayment(826, "victim@okdemo");
+    recordSaleTag({ txnId: txn.id, transcript: "ek tel", items: [], source: "voice" });
+
+    process.env.KAVACH_DB = ":memory:";
+    db(); // the file is closed, as on a server restart
+    process.env.KAVACH_DB = file;
+
+    expect(getTransaction(txn.id).amountInr).toBe(826);
+    expect(store().saleTags.find((t) => t.txnId === txn.id)?.transcript).toBe("ek tel");
+    expect(store().transactions.map((t) => t.id)).toEqual(["TXN1001", "TXN1002", "TXN1003", txn.id]);
+    expect(() =>
+      db().prepare("UPDATE sale_tags SET transcript = 'x' WHERE txn_id = ?").run(txn.id),
+    ).toThrow(/append-only/);
+  });
+
+  it("reset still works when a table the migrations do not know exists", () => {
+    db().exec("CREATE TABLE invoices (id TEXT PRIMARY KEY)");
+    const before = store().epoch;
+    resetStore();
+    expect(store().epoch).toBe(before + 1);
+    const left = db()
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'invoices'")
+      .get();
+    expect(left).toBeUndefined();
+  });
+
+  it("rows read back are frozen, so a stray write throws instead of being lost", () => {
+    expect(() => {
+      (activeMerchant() as { language: string }).language = "ta-IN";
+    }).toThrow();
+    expect(() => {
+      (getTransaction("TXN1001") as { amountInr: number }).amountInr = 1;
+    }).toThrow();
   });
 });
 

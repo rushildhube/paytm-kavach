@@ -116,15 +116,3 @@ export const MIGRATIONS: readonly string[] = [
   `,
 ];
 
-/** Every table, children first, for a full rebuild. */
-export const TABLES = [
-  "sale_tags",
-  "screenings",
-  "grievances",
-  "holds",
-  "reports",
-  "bills",
-  "transactions",
-  "merchants",
-  "meta",
-] as const;

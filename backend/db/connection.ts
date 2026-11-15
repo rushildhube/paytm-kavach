@@ -1,7 +1,7 @@
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import path from "node:path";
 import { DEMO_MERCHANT_ID, merchants, seedTransactions } from "@data/seed";
-import { MIGRATIONS, TABLES } from "./schema";
+import { MIGRATIONS } from "./schema";
 
 /**
  * The SQLite database behind the demo (node:sqlite, built into Node 24).
@@ -89,7 +89,12 @@ function rebuild(conn: DatabaseSync, epoch: number): void {
   conn.exec("PRAGMA foreign_keys = OFF");
   try {
     transaction(conn, () => {
-      for (const t of TABLES) conn.exec(`DROP TABLE IF EXISTS ${t}`);
+      // Every table that exists, not a fixed list, so tables from a newer
+      // migration (or another branch) never block a rebuild.
+      const tables = conn
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
+        .all() as { name: string }[];
+      for (const { name } of tables) conn.exec(`DROP TABLE IF EXISTS "${name.replace(/"/g, '""')}"`);
       for (const m of MIGRATIONS) conn.exec(m);
       conn.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
       seed(conn, epoch);
@@ -139,7 +144,7 @@ function seed(conn: DatabaseSync, epoch: number): void {
   for (const s of saleTags) {
     insTag.run(s.txnId, s.recordedAt, s.transcript, JSON.stringify(s.items), s.source, s.boundBy ?? null, s.billId ?? null);
   }
-  const insMeta = conn.prepare("INSERT INTO meta (key, value) VALUES (?, ?)");
+  const insMeta = conn.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)");
   const meta: Record<string, string | number> = {
     epoch,
     clock_offset_ms: 0,
