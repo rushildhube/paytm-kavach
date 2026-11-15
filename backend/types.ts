@@ -42,10 +42,34 @@ export type SaleTag = {
 
 export type HoldType = "police" | "bank";
 
+/**
+ * How far the restriction reaches.
+ * - "lien": only the reported amount is blocked; the rest of the balance is usable.
+ * - "debit_freeze": nothing can be withdrawn from the account, even though the
+ *   report concerns one payment. This happens in practice; the merchant can ask
+ *   for it to be narrowed to a lien on the reported amount.
+ */
+export type HoldScope = "lien" | "debit_freeze";
+
+/**
+ * A victim's complaint on 1930 / NCRP naming one payment. Seen only by the
+ * bank console. The merchant learns nothing until a hold is actually placed.
+ */
+export type FraudReport = {
+  id: string;
+  txnId: string;
+  /** Acknowledgement number the victim receives (synthetic). */
+  ackNo: string;
+  reportedAt: string;
+  amountInr: number;
+};
+
 export type Hold = {
   id: string;
   txnId: string;
   type: HoldType;
+  scope: HoldScope;
+  /** The amount the complaint concerns. */
   heldAmountInr: number;
   placedAt: string;
   reference: string;

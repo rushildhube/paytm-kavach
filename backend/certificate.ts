@@ -29,7 +29,7 @@ export type SaleCertificate = {
     transcript: string;
     items: SaleItem[];
   } | null;
-  hold: Pick<Hold, "reference" | "type" | "heldAmountInr" | "placedAt">;
+  hold: Pick<Hold, "reference" | "type" | "scope" | "heldAmountInr" | "placedAt">;
   provenance: string[];
   disclaimer: string;
 };
@@ -72,6 +72,7 @@ export function buildCertificate(holdId: string, generatedAt: Date): SaleCertifi
     hold: {
       reference: hold.reference,
       type: hold.type,
+      scope: hold.scope,
       heldAmountInr: hold.heldAmountInr,
       placedAt: hold.placedAt,
     },

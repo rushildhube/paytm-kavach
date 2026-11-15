@@ -4,29 +4,63 @@ import { escalateAfterDays } from "./rules";
 import { now, store } from "./store";
 import type {
   Eligibility,
+  FraudReport,
   Grievance,
   Hold,
+  HoldScope,
   HoldType,
   Merchant,
   MuleScreenAnswers,
   TrackerStatus,
 } from "./types";
 
-/** A hold arrives (simulated). Only the reported payment's amount is held. */
-export function placeHold(txnId: string, type: HoldType = "police"): Hold {
+/**
+ * The victim reports the payment on 1930 / NCRP (simulated). This is a
+ * bank-side event only: it must never reach the merchant before a hold
+ * exists (no tipping off).
+ */
+export function reportFraud(txnId: string): FraudReport {
+  const txn = getTransaction(txnId);
+  const s = store();
+  const existing = s.reports.find((r) => r.txnId === txnId);
+  if (existing) return existing;
+  const n = s.nextReport++;
+  const report: FraudReport = {
+    id: `RPT${n}`,
+    txnId,
+    ackNo: `DEMO-NCRP-${String(31_500_000 + n)}`,
+    reportedAt: now().toISOString(),
+    amountInr: txn.amountInr,
+  };
+  s.reports.push(report);
+  return report;
+}
+
+/**
+ * The bank acts on a report (simulated). The complaint always concerns only
+ * the reported payment's amount; `scope` records whether the bank blocked just
+ * that amount (lien) or stopped all withdrawals from the account.
+ */
+export function placeHold(
+  txnId: string,
+  type: HoldType = "police",
+  scope: HoldScope = "lien",
+): Hold {
   const txn = getTransaction(txnId);
   const s = store();
   if (s.holds.some((h) => h.txnId === txnId)) {
     throw new Error("this payment already has a hold");
   }
+  const report = s.reports.find((r) => r.txnId === txnId);
   const n = s.nextHold++;
   const hold: Hold = {
     id: `HOLD${n}`,
     txnId,
     type,
+    scope,
     heldAmountInr: txn.amountInr,
     placedAt: now().toISOString(),
-    reference: `DEMO-ACK-${String(n).padStart(6, "0")}`,
+    reference: report?.ackNo ?? `DEMO-ACK-${String(n).padStart(6, "0")}`,
   };
   s.holds.push(hold);
   return hold;
