@@ -149,6 +149,25 @@ export function CertificateCard({ cert }: { cert: SaleCertificate }) {
           No sale description was recorded for this payment.
         </p>
       )}
+      {cert.invoice && (
+        <div className="mt-3">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Invoice attached at payment time
+          </h4>
+          <div className="mt-1 rounded-lg bg-sky-50 p-3 text-sm text-sky-950">
+            <div>
+              {cert.invoice.kind.toUpperCase()} file, attached {cert.invoice.secondsAfterPayment}s after the
+              payment, before the hold
+              {cert.invoice.totalInr !== null && <> · total ₹{cert.invoice.totalInr}</>}
+            </div>
+            <div className="mt-1 font-mono text-[11px] break-all">SHA-256 {cert.invoice.sha256}</div>
+            <div className="mt-1 text-xs text-sky-800">
+              Only the fingerprint is kept. The merchant&apos;s copy of the file can be checked against it;
+              its contents are not verified by Paytm.
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
