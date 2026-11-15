@@ -6,85 +6,44 @@ import type { Packet, Snapshot } from "@backend/api";
 import { DEMO_PAYMENT } from "@data/seed";
 import { useRecorder } from "@voice/useRecorder";
 import { CertificateCard, Disclaimer, DraftCard, inr, when } from "./parts";
+import { speak as speakText, stopSpeaking } from "./speech";
+import { useLive } from "./useLive";
 
-type Reply<T> = { result: T; state: Snapshot };
 type Answers = { lentAccount: boolean | null; receivedForCommission: boolean | null };
 const NO_ANSWERS: Answers = { lentAccount: null, receivedForCommission: null };
 
 const btn =
   "rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 
-export default function KavachApp() {
-  const [state, setState] = useState<Snapshot | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+/**
+ * The merchant's Paytm for Business app with Kavach.
+ * With `controls`, it also shows the single-screen demo controls (the `/`
+ * fallback). Without them it is the phone screen in the multi-screen demo,
+ * driven by the Soundbox, customer and bank screens.
+ */
+export default function KavachApp({ controls = true }: { controls?: boolean }) {
   const [explanation, setExplanation] = useState<Draft | null>(null);
   const [answers, setAnswers] = useState<Answers>(NO_ANSWERS);
   const [packet, setPacket] = useState<Packet | null>(null);
   const [escalation, setEscalation] = useState<Draft | null>(null);
-  const audio = useRef<HTMLAudioElement | null>(null);
+  const [listening, setListening] = useState(false);
+  const requested = useRef<{ explain?: string; escalation?: string }>({});
 
-  const call = useCallback(
-    async <T,>(body: Record<string, unknown>): Promise<Reply<T> | null> => {
-      setBusy(String(body.action));
-      setError(null);
-      try {
-        const res = await fetch("/api/kavach", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "Something went wrong");
-        setState(json.state);
-        return json as Reply<T>;
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
-        return null;
-      } finally {
-        setBusy(null);
-      }
-    },
-    [],
-  );
-
-  useEffect(() => {
-    let live = true;
-    fetch("/api/kavach", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "state" }),
-    })
-      .then((res) => res.json())
-      .then((json) => {
-        if (!live) return;
-        if (json.state) setState(json.state);
-        else setError(json.error ?? "Could not load");
-      })
-      .catch(() => live && setError("Could not load"));
-    return () => {
-      live = false;
-    };
+  const onReset = useCallback(() => {
+    stopSpeaking();
+    requested.current = {};
+    setExplanation(null);
+    setAnswers(NO_ANSWERS);
+    setPacket(null);
+    setEscalation(null);
   }, []);
+  const live = useLive<Snapshot>("merchant", { onReset });
+  const { state, error, setError, call } = live;
+  const busy = listening ? "listening" : live.busy;
 
-  /** Speak through Sarvam. Silent no-op if speech is not configured. */
+  /** Speak Hindi aloud: Sarvam if configured, otherwise the browser voice. */
   const speak = useCallback(
-    async (text: string) => {
-      if (!state?.speechConfigured) return;
-      try {
-        const res = await fetch("/api/voice/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
-        });
-        if (!res.ok) return;
-        audio.current?.pause();
-        audio.current = new Audio(URL.createObjectURL(await res.blob()));
-        await audio.current.play();
-      } catch {
-        // Audio is a nicety; the text is always on screen.
-      }
-    },
+    (text: string) => speakText(text, state?.speechConfigured ?? false),
     [state?.speechConfigured],
   );
 
@@ -102,7 +61,7 @@ export default function KavachApp() {
 
   const onClip = useCallback(
     async (clip: Blob) => {
-      setBusy("listening");
+      setListening(true);
       setError(null);
       try {
         const form = new FormData();
@@ -114,12 +73,35 @@ export default function KavachApp() {
         await saveTag(json.transcript, "voice");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not understand the audio");
-        setBusy(null);
+      } finally {
+        setListening(false);
       }
     },
-    [saveTag],
+    [saveTag, setError],
   );
   const recorder = useRecorder(onClip);
+
+  // A hold can arrive from the bank screen at any moment: explain it once.
+  useEffect(() => {
+    if (!hold || requested.current.explain === hold.id) return;
+    requested.current.explain = hold.id;
+    void call<Draft>({ action: "explain", holdId: hold.id }).then((reply) => {
+      if (reply) {
+        setExplanation(reply.result);
+        void speak(reply.result.text);
+      }
+    });
+  }, [hold, call, speak]);
+
+  // When the deadline passes without a reply, prepare the escalation once.
+  const stage = state?.tracker?.stage;
+  useEffect(() => {
+    if (!hold || stage !== "escalation_due" || requested.current.escalation === hold.id) return;
+    requested.current.escalation = hold.id;
+    void call<Draft>({ action: "escalation", holdId: hold.id }).then((reply) => {
+      if (reply) setEscalation(reply.result);
+    });
+  }, [hold, stage, call]);
 
   // ---- demo controls -------------------------------------------------------
 
@@ -134,13 +116,8 @@ export default function KavachApp() {
 
   const triggerHold = async () => {
     if (!latest) return;
-    const placed = await call<{ id: string }>({ action: "hold", txnId: latest.id });
-    if (!placed) return;
-    const reply = await call<Draft>({ action: "explain", holdId: placed.result.id });
-    if (reply) {
-      setExplanation(reply.result);
-      void speak(reply.result.text);
-    }
+    await call({ action: "report", txnId: latest.id });
+    await call({ action: "hold", txnId: latest.id });
   };
 
   const preparePacket = async () => {
@@ -152,21 +129,10 @@ export default function KavachApp() {
   const day15 = async () => {
     if (!hold || !state?.tracker) return;
     const days = state.tracker.escalateAfterDays - (state.tracker.daysSinceFiled ?? 0);
-    const moved = await call({ action: "advance", days: Math.max(days, 1) });
-    if (moved?.state.tracker?.stage === "escalation_due") {
-      const reply = await call<Draft>({ action: "escalation", holdId: hold.id });
-      if (reply) setEscalation(reply.result);
-    }
+    await call({ action: "advance", days: Math.max(days, 1) });
   };
 
-  const reset = async () => {
-    audio.current?.pause();
-    setExplanation(null);
-    setAnswers(NO_ANSWERS);
-    setPacket(null);
-    setEscalation(null);
-    await call({ action: "reset" });
-  };
+  const reset = () => call({ action: "reset" });
 
   if (!state) {
     return <div className="p-10 text-slate-500">{error ?? "Loading…"}</div>;
@@ -176,9 +142,21 @@ export default function KavachApp() {
   const filed = tracker && tracker.stage !== "not_filed";
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 lg:flex-row lg:items-start lg:p-8">
+    <div
+      className={
+        controls
+          ? "mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 lg:flex-row lg:items-start lg:p-8"
+          : "mx-auto w-full max-w-md"
+      }
+    >
       {/* ---------------- merchant phone ---------------- */}
-      <main className="mx-auto w-full max-w-md overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 shadow-xl">
+      <main
+        className={
+          controls
+            ? "mx-auto w-full max-w-md overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 shadow-xl"
+            : "min-h-dvh w-full bg-slate-100"
+        }
+      >
         <header className={`px-5 py-4 text-white ${hold ? "bg-red-600" : "bg-[#002E6E]"}`}>
           <div className="text-xs opacity-80">Paytm for Business · Kavach</div>
           <div className="text-lg font-semibold">{state.merchant.shopName}</div>
@@ -196,15 +174,29 @@ export default function KavachApp() {
           {/* hold alert */}
           {hold && (
             <section className="rounded-xl border-2 border-red-500 bg-red-50 p-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-red-700">
-                Hold on one payment
-              </div>
-              <div className="mt-1 text-3xl font-bold text-red-700">
-                {inr(hold.heldAmountInr)} पर रोक
-              </div>
-              <p className="mt-1 text-sm font-medium text-red-900">
-                सिर्फ़ इस एक पेमेंट पर, पूरे खाते पर नहीं। यह कोई आरोप नहीं है।
-              </p>
+              {hold.scope === "debit_freeze" ? (
+                <>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-red-700">
+                    Withdrawals stopped · complaint on one payment
+                  </div>
+                  <div className="mt-1 text-2xl font-bold text-red-700">खाते से निकासी पर रोक</div>
+                  <p className="mt-1 text-sm font-medium text-red-900">
+                    शिकायत सिर्फ़ एक पेमेंट की है: {inr(hold.heldAmountInr)}। यह कोई आरोप नहीं है।
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-red-700">
+                    Hold on one payment
+                  </div>
+                  <div className="mt-1 text-3xl font-bold text-red-700">
+                    {inr(hold.heldAmountInr)} पर रोक
+                  </div>
+                  <p className="mt-1 text-sm font-medium text-red-900">
+                    सिर्फ़ इस एक पेमेंट पर, पूरे खाते पर नहीं। यह कोई आरोप नहीं है।
+                  </p>
+                </>
+              )}
               <p className="mt-1 text-xs text-red-800">
                 Reference {hold.reference} · {when(hold.placedAt)}
               </p>
@@ -407,6 +399,7 @@ export default function KavachApp() {
       </main>
 
       {/* ---------------- demo controls ---------------- */}
+      {controls && (
       <aside className="w-full rounded-2xl border border-slate-200 bg-white p-5 lg:sticky lg:top-8 lg:max-w-xs">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Demo controls</h2>
         <p className="mt-1 text-xs text-slate-500">
@@ -440,6 +433,7 @@ export default function KavachApp() {
           {busy && <div className="text-slate-700">Working: {busy}…</div>}
         </dl>
       </aside>
+      )}
     </div>
   );
 }
