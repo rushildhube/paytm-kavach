@@ -51,6 +51,16 @@ describe("proof of sale is recorded at payment time only", () => {
     }).toThrow();
   });
 
+  it("the database itself refuses to change or delete a stored tag", async () => {
+    const { db } = await import("@backend/db/connection");
+    const txn = recordPayment(826, "victim@okdemo");
+    tag(txn.id);
+    expect(() => db().prepare("UPDATE sale_tags SET transcript = 'x' WHERE txn_id = ?").run(txn.id)).toThrow(
+      /append-only/,
+    );
+    expect(() => db().prepare("DELETE FROM sale_tags WHERE txn_id = ?").run(txn.id)).toThrow(/append-only/);
+  });
+
   it("prompts only at or above the threshold", () => {
     expect(needsTag(TAG_THRESHOLD_INR)).toBe(true);
     expect(needsTag(TAG_THRESHOLD_INR - 1)).toBe(false);
