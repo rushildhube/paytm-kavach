@@ -91,8 +91,8 @@ Sources:
 - [x] `/customer`, `/soundbox`, `/bank`, `/merchant` pages (`/` unchanged)
 - [x] `dev:lan` script and `allowedDevOrigins`
 - [x] Merged `verify/rules` (verified rules, day-22 ladder, law watcher, voice MIME fix); bank console defaults to `lien` and has law-watcher controls
-- [ ] Try it on real phones: mic over HTTPS, iOS recording format, audio unlock
-- [ ] Rewrite `demo/script.md` for four screens; fix README wording (drafting is Sarvam now, not Claude)
+- [ ] Try it on real phones: mic over HTTPS, iOS recording format, audio unlock (#16); tag window (#17)
+- [ ] Rewrite `demo/script.md` for four screens (#14); fix README wording (drafting is Sarvam now, not Claude)
 
 ## Conventions for whoever continues
 

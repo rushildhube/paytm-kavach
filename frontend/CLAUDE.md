@@ -1,6 +1,17 @@
 # frontend/
 
-The merchant-facing demo UI, styled as a feature inside the Paytm merchant app. Rendered by `src/app/page.tsx`.
+The demo UI. The merchant app is styled as a feature inside the Paytm merchant app. `src/app/page.tsx` renders the single-screen version; `src/app/{customer,soundbox,merchant,bank}/page.tsx` render the four live screens (issue #4, `docs/multi-screen-demo.md`).
+
+## The four live screens (branch `feat/multi-screen-demo`)
+
+All four poll the shared in-memory state through `useLive(role)` and receive only their role's snapshot. A reset from any screen bumps `epoch`, and every screen returns to its start state.
+
+- `useLive.ts` — `useLive<S>(role, { intervalMs, onReset })` returns `{ state, error, setError, busy, call }`. Polls `POST /api/kavach {action: "state", role}`; `call(body)` adds `role` to every action. `onReset` fires when `epoch` changes.
+- `speech.ts` — `speak(text, useSarvam)` (Sarvam TTS through `/api/voice/tts`, falls back to the browser's `hi-IN` voice so the Soundbox is never silent), `stopSpeaking`, `unlockAudio` (call inside a tap; phones block audio until then).
+- `CustomerApp.tsx` (`/customer`) — buyer's Paytm-style flow: Scan & Pay → amount (₹826 prefilled) → any 4-digit UPI PIN → success. Sends `pay` with the synthetic `DEMO_PAYER_VPA`; the server masks it.
+- `SoundboxApp.tsx` (`/soundbox`) — needs one "Tap to switch on". Announces payments that arrive after power-on (not old ones, not after reload), asks "क्या बेचा?" for payments at or above the threshold, records with `useRecorder` → `/api/voice/stt` → `tag`, or "Use recorded clip". Shows the countdown and the saved tag. Never shows reports or holds.
+- `KavachApp.tsx` with `controls={false}` (`/merchant`) — same merchant app without the demo-controls panel. It reacts to a hold placed from the bank screen (fetches and speaks the explanation once per hold) and fetches the escalation draft once the tracker reaches `escalation_due`. The hold alert has wording for both scopes: `lien` ("₹826 पर रोक") and `debit_freeze` ("खाते से निकासी पर रोक", complaint on one payment).
+- `BankConsole.tsx` (`/bank`) — presenter's laptop. 1) Report a payment (victim on 1930/NCRP) → ack number. 2) Apply a restriction: `lien` (default, MHA SOP s.9.1) or `debit_freeze` (over-reach case). 3) Simulate day `tracker.escalateAfterDays` (22). 4) Law watcher buttons. Also "Reset whole demo" and links to the phone screens.
 
 ## What belongs here
 

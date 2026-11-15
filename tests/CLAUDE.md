@@ -2,6 +2,8 @@
 
 Automated tests. The guardrails are the product's credibility, so they get tests of their own.
 
+On `feat/multi-screen-demo` there are 45 tests. The extra ones in `guardrails.test.ts` cover: a fraud report reaches only the bank snapshot; the merchant sees the hold with the report's reference; customer and Soundbox snapshots never carry hold data; the payer from the customer screen is stored masked; holds default to `lien`; reset bumps `epoch`; debit-freeze explanation and grievance pass `checkDraft` and cite `hold-limited-to-amount`.
+
 ## What belongs here
 
 - **Unit tests** for backend logic: ledger, certificate builder, tracker, threshold trigger, item parsing.

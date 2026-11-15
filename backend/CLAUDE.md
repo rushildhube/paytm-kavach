@@ -2,6 +2,20 @@
 
 API and deterministic core logic. Anything that must be trustworthy and repeatable lives here, not in the LLM.
 
+## Multi-screen additions (branch `feat/multi-screen-demo`, issue #4)
+
+These supersede the matching lines under "What is here now" once the branch is merged.
+
+- **Roles.** Every action may carry `role`: `merchant` (default), `soundbox`, `customer`, `bank`. The reply is `{ result, state: snapshotFor(role) }`.
+  - `snapshot()` (merchant): as below, plus `epoch` and `tagWindowSeconds`. No report data.
+  - `soundboxSnapshot()`: `epoch`, `shopName`, `thresholdInr`, `tagWindowSeconds`, `speechConfigured`, last 5 `payments` (`id`, `amountInr`, `at`, `transcript`, `canTag`, `secondsLeft`, `needsTag`). No holds, no reports.
+  - `customerSnapshot()`: `epoch`, `payee` (`shopName`, `city`, `vpa`). Nothing about the merchant's account.
+  - `bankSnapshot()`: `epoch`, `now`, `simulatedDays`, merchant (bank name, last 4 digits), transactions with `reported`/`held`, `reports`, `hold`, `grievance`, `tracker`, `ladder`, `lawWatch`.
+- **New actions.** `report {txnId}` → `FraudReport` (bank side only). `hold {txnId, scope?: "lien" | "debit_freeze"}` (default `lien`; the hold's `reference` is the report's ack number when one exists). `pay {amountInr?, payerVpa?}` (payer masked before storage).
+- **Types.** `FraudReport { id, txnId, ackNo, reportedAt, amountInr }`; `HoldScope`; `Hold.scope`. The certificate's hold block carries `scope`.
+- **Store.** `reports[]`, `nextReport`, `epoch` (bumped by every `resetStore()`). A store from older code is replaced on the next call.
+- **Tests guard this:** report data never reaches merchant, Soundbox or customer snapshots; hold data never reaches customer or Soundbox.
+
 ## What belongs here
 
 - **Proof-of-sale ledger** — append-only store of sale tags, each bound to a transaction id and written at payment time. No endpoint may create or edit a tag for a past transaction after the fact.
