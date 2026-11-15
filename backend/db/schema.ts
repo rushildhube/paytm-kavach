@@ -197,4 +197,21 @@ export const MIGRATIONS: readonly string[] = [
   CREATE TRIGGER sale_tags_no_delete BEFORE DELETE ON sale_tags
   BEGIN SELECT RAISE(ABORT, 'sale tags are append-only'); END;
   `,
+
+  // 5: the buyer approves the bill (issue #19, docs/proof-improvements.md
+  // item 1). The buyer's payment screen shows the bill's items and amount
+  // before the PIN; a bill tag paid that way is marked, written once with the
+  // tag. The bill text now also reaches the buyer and the UPI note, so its
+  // data_purposes row is replaced (the table refuses UPDATE outside a migration).
+  `
+  ALTER TABLE sale_tags ADD COLUMN buyer_approved INTEGER NOT NULL DEFAULT 0 CHECK (buyer_approved IN (0, 1));
+
+  DROP TRIGGER data_purposes_no_update;
+  UPDATE data_purposes
+     SET purpose = 'Becomes the sale tag when the bill is paid: proof of what was sold. The buyer''s payment screen shows it before the PIN, so the buyer approves it.',
+         minimised = 'Items only, never buyer details. Shown only to the buyer paying that bill, and carried in that payment''s UPI note (bill id and items, cut to 50 characters).'
+   WHERE table_name = 'bills' AND column_name = 'text';
+  CREATE TRIGGER data_purposes_no_update BEFORE UPDATE ON data_purposes
+  BEGIN SELECT RAISE(ABORT, 'data purposes change only by migration'); END;
+  `,
 ];

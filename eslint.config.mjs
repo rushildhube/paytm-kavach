@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Agent worktrees (each is a full copy of the repo).
     ".claude/**",
+    // Pitch deck generator (Node script, not app code).
+    "docs/deck/**",
   ]),
 ]);
 

@@ -10,7 +10,7 @@ import { useRecorder } from "@voice/useRecorder";
 import { inr, when } from "./parts";
 import { ProofChip } from "./ProofChip";
 import { QrCode } from "./QrCode";
-import { buildUpiUri } from "./upi";
+import { billNote, buildUpiUri } from "./upi";
 import { enqueue, onSpeaking, pauseSpeech, prefetch, resumeSpeech, stopSpeaking, unlockAudio } from "./speech";
 import { DemoPill, PAGE, PowerIcon } from "./ui";
 import { useLive } from "./useLive";
@@ -254,7 +254,7 @@ export default function SoundboxApp() {
   const qrText = state
     ? buildUpiUri(
         request
-          ? { pa: state.payee.vpa, pn: state.payee.shopName, am: request.amountInr, tr: request.billId, tn: `Bill ${request.billId}` }
+          ? { pa: state.payee.vpa, pn: state.payee.shopName, am: request.amountInr, tr: request.billId, tn: billNote(request.billId, request.text) }
           : { pa: state.payee.vpa, pn: state.payee.shopName },
       )
     : null;
