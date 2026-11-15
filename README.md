@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kavach
 
-## Getting Started
+Other tools help a merchant write a letter after the account is frozen. Kavach makes sure the proof already exists before the freeze happens.
 
-First, run the development server:
+The merchant says what was sold as the payment arrives. If that payment is later put on hold after a fraud report, Kavach explains the hold in Hindi, produces a sale certificate from the payment records, and drafts the grievance for the merchant to file at their own bank.
+
+## Run it
 
 ```bash
+npm install
+cp .env.example .env.local   # optional: add SARVAM_API_KEY and ANTHROPIC_API_KEY
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 and follow `demo/script.md`. Without keys the demo still runs, using a recorded clip and fixed-wording drafts.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm test          # guardrail and scenario tests
+npm run typecheck
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Layout
 
-## Learn More
+| Folder | Holds |
+|---|---|
+| `backend/` | Append-only sale ledger, holds, eligibility, certificate, tracker |
+| `agent/` | Claude drafting and the checks every draft must pass |
+| `voice/` | Browser recording, Sarvam speech to text and text to speech, item parsing |
+| `rules/` | The rules table that all legal references come from |
+| `templates/` | Fixed-wording drafts used as fallback |
+| `frontend/` | Merchant screen and demo controls |
+| `data/` | Synthetic demo data |
+| `demo/`, `docs/`, `tests/`, `tasks/` | Demo script, pitch material, tests, plan |
 
-To learn more about Next.js, take a look at the following resources:
+Each folder has a `CLAUDE.md` describing what belongs there.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Status
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This is a hackathon prototype on synthetic data. The entries in `rules/rules.json` came from research notes and are marked unverified until checked against primary sources. Kavach produces drafts, not legal advice, and never files anything.
