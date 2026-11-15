@@ -1,9 +1,14 @@
+import type { VoiceLanguage } from "@voice/languages";
+
+export type { VoiceLanguage };
+
 export type Merchant = {
   id: string;
   shopName: string;
   ownerName: string;
   city: string;
-  language: "hi-IN";
+  /** Language the Soundbox speaks and listens in. Set by the merchant (`settings` action). */
+  language: VoiceLanguage;
   bankName: string;
   /** Only the last four digits are ever stored. */
   accountLast4: string;
@@ -23,6 +28,25 @@ export type Transaction = {
   /** Always stored masked. */
   payerVpaMasked: string;
   settlement: Settlement;
+  /** Set when the buyer paid a bill's QR. The bill existed before the payment. */
+  billId?: string | null;
+};
+
+/**
+ * A bill the merchant makes before the customer pays (bill-first, issue #15
+ * option D). Its QR carries the bill id, so the payment is bound to it by id,
+ * not by timing. Content is fixed once created; only `status`/`txnId` change.
+ */
+export type Bill = {
+  id: string;
+  merchantId: string;
+  amountInr: number;
+  /** What the merchant typed or said for the bill, as given. */
+  text: string;
+  items: SaleItem[];
+  createdAt: string;
+  status: "open" | "paid" | "cancelled";
+  txnId: string | null;
 };
 
 export type SaleItem = {
@@ -37,7 +61,17 @@ export type SaleTag = {
   /** Exactly what the merchant said. */
   transcript: string;
   items: SaleItem[];
-  source: "voice" | "recorded_clip";
+  source: "voice" | "recorded_clip" | "bill";
+  /**
+   * How the tag was tied to its payment, shown on the certificate so a reader
+   * can judge its weight (docs/problem.md):
+   * - "bill": the payment was made against a bill created before it
+   * - "tap": the merchant picked the payment card
+   * - "amount": the spoken amount matched exactly one open payment
+   * - "single": only one payment was open
+   */
+  binding?: "bill" | "tap" | "amount" | "single";
+  billId?: string;
 };
 
 export type HoldType = "police" | "bank";

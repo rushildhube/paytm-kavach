@@ -10,7 +10,11 @@ export function needsTag(amountInr: number): boolean {
 }
 
 /** A payment arrives (simulated Paytm payment event). */
-export function recordPayment(amountInr: number, payerVpa: string): Transaction {
+export function recordPayment(
+  amountInr: number,
+  payerVpa: string,
+  billId: string | null = null,
+): Transaction {
   if (!Number.isFinite(amountInr) || amountInr <= 0) {
     throw new LedgerError("amount must be positive");
   }
@@ -22,6 +26,7 @@ export function recordPayment(amountInr: number, payerVpa: string): Transaction 
     at: now().toISOString(),
     payerVpaMasked: maskVpa(payerVpa),
     settlement: { status: "unsettled" },
+    billId,
   };
   s.transactions.push(txn);
   return txn;
@@ -47,6 +52,8 @@ export function recordSaleTag(input: {
   transcript: string;
   items: SaleItem[];
   source: SaleTag["source"];
+  binding?: SaleTag["binding"];
+  billId?: string;
 }): SaleTag {
   const txn = getTransaction(input.txnId);
   const transcript = input.transcript.trim();
@@ -70,6 +77,8 @@ export function recordSaleTag(input: {
     transcript,
     items: input.items,
     source: input.source,
+    ...(input.binding ? { binding: input.binding } : {}),
+    ...(input.billId ? { billId: input.billId } : {}),
   });
   store().saleTags.push(tag);
   return tag;

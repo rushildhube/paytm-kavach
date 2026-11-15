@@ -1,5 +1,6 @@
 import { merchants, seedTransactions, DEMO_MERCHANT_ID } from "@data/seed";
 import type {
+  Bill,
   FraudReport,
   Grievance,
   Hold,
@@ -20,6 +21,8 @@ type Store = {
   saleTags: SaleTag[];
   /** Bank-side only. Never sent to the merchant or Soundbox views. */
   reports: FraudReport[];
+  /** Bills made before payment (bill-first). Content fixed; status/txnId change once. */
+  bills: Bill[];
   holds: Hold[];
   grievances: Grievance[];
   /** Simulated clock offset, used by "simulate day 15". */
@@ -27,6 +30,7 @@ type Store = {
   nextTxn: number;
   nextHold: number;
   nextReport: number;
+  nextBill: number;
   /** Bumped on every reset so all connected screens return to their start. */
   epoch: number;
 };
@@ -34,17 +38,19 @@ type Store = {
 function fresh(epoch = 0): Store {
   const seeded = seedTransactions(Date.now());
   return {
-    merchants,
+    merchants: merchants.map((m) => ({ ...m })),
     activeMerchantId: DEMO_MERCHANT_ID,
     transactions: seeded.transactions,
     saleTags: seeded.saleTags,
     reports: [],
+    bills: [],
     holds: [],
     grievances: [],
     clockOffsetMs: 0,
     nextTxn: 2001,
     nextHold: 1,
     nextReport: 1,
+    nextBill: 1,
     epoch,
   };
 }
@@ -53,7 +59,7 @@ const g = globalThis as unknown as { __kavachStore?: Store };
 
 export function store(): Store {
   // Also replaces a store left over from an older code version during hot reload.
-  if (!g.__kavachStore || !Array.isArray(g.__kavachStore.reports)) g.__kavachStore = fresh();
+  if (!g.__kavachStore || !Array.isArray(g.__kavachStore.bills)) g.__kavachStore = fresh();
   return g.__kavachStore;
 }
 
