@@ -8,8 +8,17 @@ import {
 import { spokenAmountsInr } from "@voice/amounts";
 import { parseSaleItems } from "@voice/parser";
 import { sarvamConfigured } from "@voice/sarvam";
-import { isVoiceLanguage, VOICE_LANGUAGES } from "@voice/languages";
-import { cancelBill, createBill, getBill, merchantBills, ownBill, settleBill } from "./bills";
+import { VOICE_LANGUAGES } from "@voice/languages";
+import {
+  BILL_ID_PATTERN,
+  cancelBill,
+  createBill,
+  getBill,
+  MAX_BILL_INR,
+  merchantBills,
+  ownBill,
+  settleBill,
+} from "./bills";
 import { buildCertificate, type SaleCertificate } from "./certificate";
 import {
   DISCLAIMER,
@@ -20,6 +29,9 @@ import {
 import {
   getGrievance,
   getHold,
+  holdForTransaction,
+  latestHoldFor,
+  listReports,
   markFiled,
   merchantOfHold,
   placeHold,
@@ -28,17 +40,29 @@ import {
   screenHold,
   trackerStatus,
 } from "./holds";
-import { getSaleTag, getTransaction, LedgerError, needsTag, recordPayment, recordSaleTag } from "./ledger";
+import { tx } from "./db/connection";
+import {
+  getSaleTag,
+  getTransaction,
+  LedgerError,
+  listTransactions,
+  needsTag,
+  recordPayment,
+  recordSaleTag,
+} from "./ledger";
 import { escalationTarget, ladder } from "./rules";
 import { checkFeeds, clearDemoAlerts, ensureWatcher, injectDemoItem, watchStatus } from "./watcher";
 import {
   activeMerchant,
   advanceClock,
+  allMerchants,
+  clockOffsetMs,
+  epoch,
   getMerchant,
   now,
   resetStore,
   setActiveMerchant,
-  store,
+  setMerchantLanguage,
 } from "./store";
 import type { Eligibility, Hold } from "./types";
 import { z } from "zod";
@@ -49,21 +73,16 @@ const ROLES = ["merchant", "soundbox", "customer", "bank"] as const;
 
 /** The newest hold on one of the active merchant's payments, never another merchant's. */
 function activeHold(): Hold | null {
-  const s = store();
-  const merchantId = activeMerchant().id;
-  const own = new Set(s.transactions.filter((t) => t.merchantId === merchantId).map((t) => t.id));
-  return s.holds.findLast((h) => own.has(h.txnId)) ?? null;
+  return latestHoldFor(activeMerchant().id);
 }
 
 function merchantTransactions() {
-  const s = store();
   const merchant = activeMerchant();
   const at = now();
-  return s.transactions
-    .filter((t) => t.merchantId === merchant.id)
+  return listTransactions(merchant.id)
     .map((t) => {
       const tag = getSaleTag(t.id) ?? null;
-      const hold = s.holds.find((h) => h.txnId === t.id) ?? null;
+      const hold = holdForTransaction(t.id);
       const secondsLeft = Math.max(
         0,
         Math.round(TAG_WINDOW_SECONDS - (at.getTime() - Date.parse(t.at)) / 1000),
@@ -84,15 +103,14 @@ function merchantTransactions() {
  * and nothing about a fraud report until a hold actually exists.
  */
 export function snapshot() {
-  const s = store();
   const merchant = activeMerchant();
   const hold = activeHold();
   return {
-    epoch: s.epoch,
+    epoch: epoch(),
     now: now().toISOString(),
-    simulatedDays: Math.round(s.clockOffsetMs / 86_400_000),
-    merchant,
-    merchants: s.merchants.map((m) => ({ id: m.id, shopName: m.shopName })),
+    simulatedDays: Math.round(clockOffsetMs() / 86_400_000),
+    merchant: { ...merchant, vpa: DEMO_PAYEE_VPA },
+    merchants: allMerchants().map((m) => ({ id: m.id, shopName: m.shopName })),
     thresholdInr: TAG_THRESHOLD_INR,
     tagWindowSeconds: TAG_WINDOW_SECONDS,
     transactions: merchantTransactions(),
@@ -112,9 +130,8 @@ export function snapshot() {
 
 /** The Soundbox only announces payments and takes sale tags. No holds, no reports. */
 export function soundboxSnapshot() {
-  const s = store();
   return {
-    epoch: s.epoch,
+    epoch: epoch(),
     shopName: activeMerchant().shopName,
     language: activeMerchant().language,
     thresholdInr: TAG_THRESHOLD_INR,
@@ -139,20 +156,21 @@ export function soundboxSnapshot() {
 export function customerSnapshot() {
   const merchant = activeMerchant();
   return {
-    epoch: store().epoch,
+    epoch: epoch(),
     payee: { shopName: merchant.shopName, city: merchant.city, vpa: DEMO_PAYEE_VPA },
   };
 }
 
 /** Bank and cybercrime side. Also the presenter's console. */
 export function bankSnapshot() {
-  const s = store();
   const merchant = activeMerchant();
   const hold = activeHold();
+  const reports = listReports();
+  const reported = new Set(reports.map((r) => r.txnId));
   return {
-    epoch: s.epoch,
+    epoch: epoch(),
     now: now().toISOString(),
-    simulatedDays: Math.round(s.clockOffsetMs / 86_400_000),
+    simulatedDays: Math.round(clockOffsetMs() / 86_400_000),
     merchant: {
       shopName: merchant.shopName,
       city: merchant.city,
@@ -164,10 +182,10 @@ export function bankSnapshot() {
       amountInr: t.amountInr,
       at: t.at,
       payerVpaMasked: t.payerVpaMasked,
-      reported: s.reports.some((r) => r.txnId === t.id),
+      reported: reported.has(t.id),
       held: t.hold !== null,
     })),
-    reports: s.reports,
+    reports,
     hold,
     grievance: hold ? (getGrievance(hold.id) ?? null) : null,
     tracker: hold ? trackerStatus(hold.id) : null,
@@ -213,6 +231,7 @@ export const MAX_TRANSCRIPT_CHARS = 500;
 export const MAX_PAYMENT_INR = 500_000;
 
 const id = z.string().min(1).max(64);
+const billId = z.string().regex(BILL_ID_PATTERN);
 const act = <A extends string, S extends z.ZodRawShape>(action: A, shape: S) =>
   z.object({ action: z.literal(action), role: z.enum(ROLES).optional(), ...shape });
 
@@ -224,7 +243,7 @@ const ActionSchema = z.discriminatedUnion("action", [
   act("pay", {
     amountInr: z.number().positive().max(MAX_PAYMENT_INR).optional(),
     payerVpa: z.string().max(100).optional(),
-    billId: id.optional(),
+    billId: billId.optional(),
   }),
   act("tag", {
     txnId: id,
@@ -237,11 +256,11 @@ const ActionSchema = z.discriminatedUnion("action", [
   }),
   act("settings", { language: z.string().max(10) }),
   act("bill-create", {
-    amountInr: z.number().positive().max(MAX_PAYMENT_INR),
+    amountInr: z.number().positive().max(MAX_BILL_INR),
     text: z.string().max(300).optional(),
   }),
-  act("bill-cancel", { billId: id }),
-  act("bill-lookup", { billId: id }),
+  act("bill-cancel", { billId }),
+  act("bill-lookup", { billId }),
   act("report", { txnId: id }),
   act("hold", { txnId: id, scope: z.enum(["lien", "debit_freeze"]).optional() }),
   act("explain", { holdId: id }),
@@ -314,29 +333,37 @@ export async function handle(raw: unknown) {
           : DEMO_PAYMENT.payerVpaMasked;
       if (input.billId) {
         // Bill-first: the bill was made before the payment, so it becomes the tag.
-        // Checked before the payment is recorded, so a refused bill leaves no payment behind.
-        const bill = ownBill(input.billId);
-        if (bill.status !== "open") throw new LedgerError("this bill is not open");
-        if (input.amountInr !== undefined && Math.abs(input.amountInr - bill.amountInr) > 0.001) {
-          throw new LedgerError("amount does not match the bill");
-        }
-        const txn = recordPayment(bill.amountInr, payer, bill.id);
-        settleBill(bill.id, bill.amountInr, txn.id);
-        const tag = bill.text
-          ? recordSaleTag({
-              txnId: txn.id,
-              transcript: bill.text,
-              items: bill.items,
-              source: "bill",
-              boundBy: "bill",
-              billId: bill.id,
-            })
-          : null;
-        result = { txn, needsTag: false, bill, tag };
-        break;
+        // Payment, bill status and tag are written together or not at all.
+        const billId = input.billId;
+        result = tx(() => {
+          const bill = ownBill(billId);
+          if (bill.status !== "open") throw new LedgerError("this bill is not open");
+          if (input.amountInr !== undefined && Math.abs(input.amountInr - bill.amountInr) > 0.001) {
+            throw new LedgerError("amount does not match the bill");
+          }
+          const txn = recordPayment(bill.amountInr, payer, bill.id);
+          const paid = settleBill(bill.id, bill.amountInr, txn.id);
+          const tag = bill.text
+            ? recordSaleTag({
+                txnId: txn.id,
+                transcript: bill.text,
+                items: bill.items,
+                source: "bill",
+                boundBy: "bill",
+                billId: bill.id,
+              })
+            : null;
+          return { txn, needsTag: false, bill: paid, tag };
+        });
+      } else {
+        const txn = recordPayment(input.amountInr ?? DEMO_PAYMENT.amountInr, payer);
+        result = { txn, needsTag: needsTag(txn.amountInr) };
       }
-      const txn = recordPayment(input.amountInr ?? DEMO_PAYMENT.amountInr, payer);
-      result = { txn, needsTag: needsTag(txn.amountInr) };
+      if (input.role === "customer") {
+        // The buyer's phone gets its receipt only: no bill text, items, tag or merchant id.
+        const { txn } = result as { txn: { id: string; amountInr: number; at: string } };
+        result = { txn: { id: txn.id, amountInr: txn.amountInr, at: txn.at } };
+      }
       break;
     }
     case "tag":
@@ -386,9 +413,7 @@ export async function handle(raw: unknown) {
       break;
     }
     case "settings":
-      if (!isVoiceLanguage(input.language)) throw new Error("unsupported language");
-      activeMerchant().language = input.language;
-      result = { language: input.language };
+      result = { language: setMerchantLanguage(activeMerchant().id, input.language) };
       break;
     case "bill-create":
       result = createBill(input.amountInr, input.text ?? "");
