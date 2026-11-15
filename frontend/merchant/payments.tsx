@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Snapshot } from "@backend/api";
 import { inr, when } from "../parts";
 import { BoundByChip, Card, DEEP, NAVY, PRIMARY } from "./chrome";
@@ -14,6 +15,8 @@ export type Tagging = {
   recorderError: string | null;
   onMic: (txnId: string) => void;
   onClip: (txnId: string) => void;
+  /** Type what was sold for a payment that came without a bill. True when saved. */
+  onWriteBill: (txnId: string, text: string) => Promise<boolean>;
 };
 
 function SettlementLine({ t, accountLast4 }: { t: Txn; accountLast4: string }) {
@@ -95,10 +98,23 @@ function TagControls({ t, tagging }: { t: Txn; tagging: Tagging }) {
   const mine = tagging.activeTxnId === t.id;
   const recordingHere = mine && tagging.recording;
   const otherRecording = tagging.recording && !mine;
+  const [writing, setWriting] = useState(false);
+  const [text, setText] = useState("");
+  const saveBill = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!text.trim()) return;
+    if (await tagging.onWriteBill(t.id, text.trim())) {
+      setText("");
+      setWriting(false);
+    }
+  };
   return (
     <div className="mt-2 rounded-xl bg-brand-tint p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+        बिना बिल का पेमेंट · Paid without a bill
+      </p>
       <p className="text-sm font-semibold" style={{ color: NAVY }}>
-        क्या बेचा? बोलकर बताइए
+        क्या बेचा? बोलिए या बिल लिखिए
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
         <button
@@ -125,10 +141,38 @@ function TagControls({ t, tagging }: { t: Txn; tagging: Tagging }) {
         >
           Use recorded clip
         </button>
+        <button
+          onClick={() => setWriting((w) => !w)}
+          disabled={tagging.busy !== null || tagging.recording}
+          className="rounded-full border bg-white px-4 py-2 text-sm font-semibold disabled:opacity-50"
+          style={{ color: NAVY, borderColor: NAVY }}
+        >
+          ✍ बिल लिखिए
+        </button>
       </div>
+      {writing && (
+        <form onSubmit={saveBill} className="mt-2 flex gap-2">
+          <input
+            autoFocus
+            value={text}
+            onChange={(e) => setText(e.target.value.slice(0, 300))}
+            placeholder="दो किलो चीनी, एक तेल"
+            aria-label={`What was sold for ${inr(t.amountInr)}`}
+            className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px] outline-none focus:border-brand"
+          />
+          <button
+            type="submit"
+            disabled={!text.trim() || tagging.busy !== null}
+            className="rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            style={{ background: PRIMARY }}
+          >
+            Save
+          </button>
+        </form>
+      )}
       <p className="mt-1.5 text-xs text-slate-600">
         {tagging.speechConfigured
-          ? `${t.secondsLeft}s left. It cannot be added later.`
+          ? `${t.secondsLeft}s left to say or write it. It cannot be added later.`
           : "Live speech is off (no SARVAM_API_KEY). Use the recorded clip."}
       </p>
       {mine && tagging.recorderError && (

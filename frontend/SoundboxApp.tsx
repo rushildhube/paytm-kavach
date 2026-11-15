@@ -4,11 +4,14 @@ import { BrandLogo } from "./BrandLogo";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SoundboxSnapshot } from "@backend/api";
 import { DEMO_PAYMENT } from "@data/seed";
-import { announcePayment, phrasesFor, statusFor } from "@voice/announce";
+import { announcePayment, announceRequest, phrasesFor, statusFor } from "@voice/announce";
 import { DEFAULT_VOICE_LANGUAGE, isVoiceLanguage, VOICE_LANGUAGES, type VoiceLanguage } from "@voice/languages";
 import { useRecorder } from "@voice/useRecorder";
 import { inr, when } from "./parts";
+import { QrCode } from "./QrCode";
+import { buildUpiUri } from "./upi";
 import { enqueue, onSpeaking, pauseSpeech, prefetch, resumeSpeech, stopSpeaking, unlockAudio } from "./speech";
+import { DemoPill, PAGE, PowerIcon } from "./ui";
 import { useLive } from "./useLive";
 
 /** What a payment card needs. Candidates from tag-auto have the same shape. */
@@ -32,6 +35,8 @@ const MAX_RECORD_MS = 7000;
 const SILENCE_MS = 1200;
 /** Pressing longer than this is hold-to-talk: release stops. Shorter is a tap. */
 const HOLD_MS = 350;
+/** Said instead of a live voice bill when there is no Sarvam key or no mic. */
+const DEMO_BILL_PHRASE = `${DEMO_PAYMENT.amountInr} रुपये, ${DEMO_PAYMENT.spokenTag}`;
 const METER_BARS = [0.5, 0.8, 1, 0.75, 0.95, 0.6, 0.85, 0.55, 0.9, 0.7, 0.45];
 
 /**
@@ -54,6 +59,8 @@ export default function SoundboxApp() {
   const [micFailed, setMicFailed] = useState(false);
   const [target, setTarget] = useState<string | null>(null);
   const seen = useRef<Set<string> | null>(null);
+  // Bill requests already spoken (by nonce). Null until the first snapshot after power-on.
+  const spokenRequests = useRef<Set<string> | null>(null);
   const meter = useRef<HTMLDivElement | null>(null);
   const pressedAt = useRef(0);
 
@@ -62,6 +69,7 @@ export default function SoundboxApp() {
   const onReset = useCallback(() => {
     stopSpeaking();
     seen.current = null;
+    spokenRequests.current = null;
     setLastId(null);
     setTarget(null);
     setPhase({ kind: "idle" });
@@ -107,6 +115,20 @@ export default function SoundboxApp() {
     setLastId(fresh.at(-1)!.id);
   }, [powered, state, say, lang, phrases, english]);
 
+  // A bill sent with "voice": ask the buyer to pay, once per send. A request
+  // already there at power-on is shown, not spoken.
+  useEffect(() => {
+    if (!powered || !state) return;
+    const r = state.request;
+    if (spokenRequests.current === null) {
+      spokenRequests.current = new Set(r ? [r.nonce] : []);
+      return;
+    }
+    if (!r || r.mode !== "voice" || spokenRequests.current.has(r.nonce)) return;
+    spokenRequests.current.add(r.nonce);
+    void say(announceRequest(r, lang), announceRequest(r, "en-IN"));
+  }, [powered, state, say, lang]);
+
   const open = useMemo(
     () => (state?.payments ?? []).filter((p) => p.canTag).sort((a, b) => Date.parse(a.at) - Date.parse(b.at)),
     [state],
@@ -149,6 +171,15 @@ export default function SoundboxApp() {
     async (transcript: string, source: Source) => {
       if (!transcript.trim()) return;
       if (target) return tagTo(target, transcript, source);
+      if (open.length === 0) {
+        // Nothing waiting for a tag: the mic makes a bill ("826 रुपये, दो किलो आटा"),
+        // which the box then shows as a bill QR and reads out.
+        setPhase({ kind: "saving", transcript });
+        await call({ action: "bill-voice", transcript });
+        setPhase({ kind: "idle" });
+        resumeSpeech();
+        return;
+      }
       setPhase({ kind: "saving", transcript });
       const reply = await call<TagAutoResult>({ action: "tag-auto", transcript, source });
       const result = reply?.result;
@@ -168,7 +199,7 @@ export default function SoundboxApp() {
       resumeSpeech();
       setError("No payment is waiting for a tag.");
     },
-    [target, tagTo, call, finishSaved, say, phrases, english, setError],
+    [target, open, tagTo, call, finishSaved, say, phrases, english, setError],
   );
 
   const onClip = useCallback(
@@ -217,7 +248,15 @@ export default function SoundboxApp() {
   );
 
   const working = phase.kind === "transcribing" || phase.kind === "saving" || busy !== null;
-  const micReady = powered && sarvam && open.length > 0 && !working;
+  const micReady = powered && sarvam && !working;
+  const request = state?.request ?? null;
+  const qrText = state
+    ? buildUpiUri(
+        request
+          ? { pa: state.payee.vpa, pn: state.payee.shopName, am: request.amountInr, tr: request.billId, tn: `Bill ${request.billId}` }
+          : { pa: state.payee.vpa, pn: state.payee.shopName },
+      )
+    : null;
 
   const onMicDown = () => {
     if (recorder.recording) {
@@ -259,20 +298,20 @@ export default function SoundboxApp() {
           ? { big: phrases.choose, small: `“${phase.transcript}” matches more than one payment. Tap the right one.` }
           : open.length > 0
             ? { big: phrases.ask, small: sarvam ? "Hold to talk, or tap once and speak" : "Live speech is off (no SARVAM_API_KEY)" }
-            : { big: "", small: "" };
+            : request
+              ? { big: `${inr(request.amountInr)} · ${request.billId}`, small: "Waiting for the buyer to scan the bill QR. Speak again to make a new bill." }
+              : { big: phrases.billHint, small: sarvam ? "Say the amount, then what is sold. The box shows the bill QR." : "Live speech is off (no SARVAM_API_KEY)" };
 
   return (
-    <div className="flex min-h-dvh flex-col items-center bg-gradient-to-b from-slate-200 to-slate-300 px-4 py-6">
-      {/* ---------- the device ---------- */}
+    <div className={`flex min-h-dvh flex-col items-center ${PAGE} px-4 py-6`}>
+      {/* ---------- the device: a white Soundbox in the brand colours ---------- */}
       <div className="relative w-full max-w-sm">
-        <div className="rounded-[2.25rem] bg-gradient-to-b from-brand-deep to-brand-navy p-3 shadow-[0_20px_40px_-12px_rgba(7,29,64,0.6)] ring-1 ring-black/20">
+        <div className="rounded-[2.25rem] bg-white p-3 shadow-[0_18px_40px_-14px_rgba(15,23,42,0.35)] ring-1 ring-slate-200">
           {/* top: brand plate, LED */}
-          <div className="flex items-center justify-between rounded-t-[1.75rem] rounded-b-xl bg-white px-4 py-2.5">
+          <div className="flex items-center justify-between rounded-t-[1.75rem] rounded-b-xl bg-brand-tint px-4 py-2.5">
             <BrandLogo size={26} />
             <div className="flex items-center gap-2">
-              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
-                Demo
-              </span>
+              <DemoPill />
               <span
                 aria-label={powered ? (recorder.recording ? "listening" : "on") : "off"}
                 className={`h-3 w-3 rounded-full ring-2 ring-white ${
@@ -289,7 +328,7 @@ export default function SoundboxApp() {
           </div>
 
           {/* LCD */}
-          <div className="mt-3 rounded-xl bg-[#c9d8b6] p-3 font-mono text-[#1d2a12] shadow-[inset_0_2px_6px_rgba(0,0,0,0.35)]">
+          <div className="mt-3 rounded-xl bg-brand-navy p-3 font-mono text-white shadow-[inset_0_2px_6px_rgba(0,0,0,0.35)]">
             <div className="flex justify-between text-[11px] opacity-70">
               <span className="truncate">{state?.shopName ?? "…"}</span>
               <span>{langName}</span>
@@ -297,46 +336,43 @@ export default function SoundboxApp() {
             <div className="mt-1 text-4xl font-bold tabular-nums tracking-wider">
               {powered ? (last ? inr(last.amountInr) : "₹ ----") : ""}
             </div>
-            <div className="mt-0.5 h-4 text-xs">
+            <div className="mt-0.5 h-4 text-xs text-brand">
               {powered && last ? (last.billId ? `${last.billId} ✓` : "RECEIVED ✓") : powered ? "READY" : ""}
             </div>
           </div>
 
-          {/* speaker grille */}
-          <div className="relative mx-auto mt-4 aspect-square w-44 rounded-full bg-brand-navy p-3 shadow-[inset_0_3px_8px_rgba(0,0,0,0.6)]">
-            <div
-              className={`h-full w-full rounded-full transition-opacity ${speaking ? "opacity-100" : "opacity-70"}`}
-              style={{
-                backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.32) 1.6px, transparent 1.9px)",
-                backgroundSize: "9px 9px",
-                WebkitMaskImage: "radial-gradient(circle, #000 68%, transparent 70%)",
-                maskImage: "radial-gradient(circle, #000 68%, transparent 70%)",
-              }}
-            />
-            {speaking && <div className="absolute inset-0 animate-ping rounded-full ring-2 ring-brand/40" />}
-          </div>
+          {/* QR screen: the shop QR, or the bill QR while a bill is waiting */}
+          {powered && qrText && (
+            <div className="mt-3 flex flex-col items-center rounded-xl bg-white p-3 ring-1 ring-slate-200">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-brand-navy">
+                {request ? `Pay this bill · ${request.billId}` : "Scan & pay · any UPI app"}
+              </div>
+              <QrCode text={qrText} size={220} label={request ? `UPI QR for bill ${request.billId}` : "Shop UPI QR"} />
+              {request ? (
+                <div className="w-full text-center">
+                  <div className="text-2xl font-bold text-slate-900">{inr(request.amountInr)}</div>
+                  {request.text && <div className="mt-0.5 text-sm text-slate-700">{request.text}</div>}
+                </div>
+              ) : (
+                <div className="text-sm font-semibold text-slate-900">{state?.payee.shopName}</div>
+              )}
+              <div className="text-[10px] text-slate-400">DEMO · not a real payment QR</div>
+            </div>
+          )}
 
-          {/* physical buttons */}
-          <div className="mt-4 flex justify-center gap-6 pb-1">
-            {["−", "⏻", "+"].map((b) => (
-              <span
-                key={b}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-deep text-sm text-white/70 shadow-[0_2px_0_rgba(0,0,0,0.45)]"
-              >
-                {b}
-              </span>
-            ))}
-          </div>
+          <div className="h-1" />
         </div>
 
         {!powered && (
           <button
             onClick={powerOn}
-            className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-[2.25rem] bg-black/80 text-white"
+            className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-[2.25rem] bg-white/75 text-brand-navy backdrop-blur-sm"
           >
-            <span className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-brand text-3xl">⏻</span>
+            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-brand text-white shadow-lg ring-8 ring-brand/20">
+              <PowerIcon className="h-9 w-9" />
+            </span>
             <span className="text-lg font-semibold">Tap to switch on</span>
-            <span className="text-xs text-slate-300">Needed once so the phone can play sound</span>
+            <span className="text-xs text-slate-600">Needed once so the phone can play sound</span>
           </button>
         )}
       </div>
@@ -345,7 +381,7 @@ export default function SoundboxApp() {
       {powered && (
         <div className="mt-5 w-full max-w-sm space-y-4">
           {/* voice */}
-          {(open.length > 0 || phase.kind !== "idle" || recorder.recording) && (
+          {(
             <div className="rounded-3xl bg-white p-4 text-center shadow">
               {status.big && <p className="text-xl font-semibold text-slate-900">{status.big}</p>}
               {status.small && <p className="mt-1 text-sm text-slate-500">{status.small}</p>}
@@ -386,13 +422,26 @@ export default function SoundboxApp() {
                   Discard and speak again
                 </button>
               )}
-              {(!sarvam || micFailed) && open.length > 0 && phase.kind !== "choose" && (
+              {request && open.length === 0 && phase.kind === "idle" && !recorder.recording && (
                 <button
-                  onClick={() => submit(DEMO_PAYMENT.spokenTag, "recorded_clip")}
+                  onClick={() => void call({ action: "bill-cancel", billId: request.billId })}
+                  disabled={working}
+                  className="mt-2 block w-full text-sm text-slate-500 underline"
+                >
+                  Cancel bill {request.billId} · back to shop QR
+                </button>
+              )}
+              {(!sarvam || micFailed) && phase.kind !== "choose" && (
+                <button
+                  onClick={() =>
+                    open.length > 0
+                      ? submit(DEMO_PAYMENT.spokenTag, "recorded_clip")
+                      : submit(DEMO_BILL_PHRASE, "recorded_clip")
+                  }
                   disabled={working}
                   className="mt-2 text-sm text-slate-500 underline"
                 >
-                  Use recorded clip (“{DEMO_PAYMENT.spokenTag}”)
+                  Use recorded clip (“{open.length > 0 ? DEMO_PAYMENT.spokenTag : DEMO_BILL_PHRASE}”)
                 </button>
               )}
             </div>
@@ -479,7 +528,7 @@ export default function SoundboxApp() {
             </section>
           )}
 
-          {open.length === 0 && done.length === 0 && phase.kind === "idle" && (
+          {open.length === 0 && done.length === 0 && phase.kind === "idle" && !request && (
             <p className="text-center text-sm text-slate-600">Waiting for a payment…</p>
           )}
         </div>

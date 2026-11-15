@@ -61,7 +61,8 @@ export type SaleTag = {
   /** Exactly what the merchant said. */
   transcript: string;
   items: SaleItem[];
-  source: "voice" | "recorded_clip" | "bill";
+  /** "typed": written on the phone for a payment that came without a bill, inside the tag window. */
+  source: "voice" | "recorded_clip" | "bill" | "typed";
   /**
    * How the tag was tied to its payment, shown on the certificate so a reader
    * can judge its weight (docs/problem.md, issue #19):

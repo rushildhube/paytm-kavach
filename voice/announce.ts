@@ -29,6 +29,10 @@ type Phrases = {
   choose: string;
   /** Spoken once at power on. */
   poweredOn: string;
+  /** A bill sent to the box: "please pay {amount}" plus "for {what}" when the merchant wrote what is sold. */
+  payRequest: (amount: string, what: string) => string;
+  /** Idle hint on the box's mic button: say the amount and what is sold to make a bill. */
+  billHint: string;
 };
 
 export const PHRASES: Record<VoiceLanguage, Phrases> = {
@@ -41,6 +45,8 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     saved: "बिक्री दर्ज हो गई।",
     choose: "कौन सा पेमेंट? स्क्रीन पर दबाइए।",
     poweredOn: "साउंडबॉक्स चालू है।",
+    payRequest: (a, w) => `कृपया ${a} का भुगतान करें${w ? `, ${w} के लिए` : ""}। QR स्कैन कीजिए।`,
+    billHint: "बोलकर बिल बनाइए: रक़म और सामान",
   },
   "en-IN": {
     received: (a) => `Received ${a} ${BRAND.spokenOn["en-IN"]}.`,
@@ -51,6 +57,8 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     saved: "Sale saved.",
     choose: "Which payment? Tap it on the screen.",
     poweredOn: "Soundbox is on.",
+    payRequest: (a, w) => `Please pay ${a}${w ? ` for ${w}` : ""}. Scan the QR.`,
+    billHint: "Make a bill by voice: amount and items",
   },
   "bn-IN": {
     received: (a) => `${BRAND.spokenOn["bn-IN"]} ${a} পাওয়া গেছে।`,
@@ -61,6 +69,8 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     saved: "বিক্রি নথিভুক্ত হয়েছে।",
     choose: "কোন পেমেন্ট? স্ক্রিনে চাপুন।",
     poweredOn: "সাউন্ডবক্স চালু হয়েছে।",
+    payRequest: (a, w) => `অনুগ্রহ করে ${a} দিন${w ? `, ${w}-এর জন্য` : ""}। QR স্ক্যান করুন।`,
+    billHint: "বলে বিল বানান: টাকা আর জিনিস",
   },
   "gu-IN": {
     received: (a) => `${BRAND.spokenOn["gu-IN"]} ${a} મળ્યા.`,
@@ -71,6 +81,8 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     saved: "વેચાણ નોંધાઈ ગયું.",
     choose: "કયું પેમેન્ટ? સ્ક્રીન પર દબાવો.",
     poweredOn: "સાઉન્ડબોક્સ ચાલુ છે.",
+    payRequest: (a, w) => `કૃપા કરીને ${a} ચૂકવો${w ? `, ${w} માટે` : ""}. QR સ્કેન કરો.`,
+    billHint: "બોલીને બિલ બનાવો: રકમ અને સામાન",
   },
   "kn-IN": {
     received: (a) => `${BRAND.spokenOn["kn-IN"]} ${a} ಸ್ವೀಕರಿಸಲಾಗಿದೆ.`,
@@ -81,6 +93,8 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     saved: "ಮಾರಾಟ ದಾಖಲಾಗಿದೆ.",
     choose: "ಯಾವ ಪಾವತಿ? ಪರದೆಯ ಮೇಲೆ ಒತ್ತಿ.",
     poweredOn: "ಸೌಂಡ್‌ಬಾಕ್ಸ್ ಆನ್ ಆಗಿದೆ.",
+    payRequest: (a, w) => `ದಯವಿಟ್ಟು ${a} ಪಾವತಿಸಿ${w ? `, ${w} ಗಾಗಿ` : ""}. QR ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.`,
+    billHint: "ಹೇಳಿ ಬಿಲ್ ಮಾಡಿ: ಮೊತ್ತ ಮತ್ತು ಸಾಮಾನು",
   },
   "ml-IN": {
     received: (a) => `${BRAND.spokenOn["ml-IN"]} ${a} ലഭിച്ചു.`,
@@ -91,6 +105,8 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     saved: "വിൽപ്പന രേഖപ്പെടുത്തി.",
     choose: "ഏത് പേയ്മെന്റ്? സ്ക്രീനിൽ അമർത്തൂ.",
     poweredOn: "സൗണ്ട്ബോക്സ് ഓണാണ്.",
+    payRequest: (a, w) => `ദയവായി ${a} അടയ്ക്കുക${w ? `, ${w} ന്` : ""}. QR സ്കാൻ ചെയ്യുക.`,
+    billHint: "പറഞ്ഞ് ബിൽ ഉണ്ടാക്കൂ: തുകയും സാധനങ്ങളും",
   },
   "mr-IN": {
     received: (a) => `${BRAND.spokenOn["mr-IN"]} ${a} मिळाले.`,
@@ -101,6 +117,8 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     saved: "विक्री नोंदवली गेली.",
     choose: "कोणते पेमेंट? स्क्रीनवर दाबा.",
     poweredOn: "साउंडबॉक्स चालू आहे.",
+    payRequest: (a, w) => `कृपया ${a} भरा${w ? `, ${w} साठी` : ""}. QR स्कॅन करा.`,
+    billHint: "बोलून बिल बनवा: रक्कम आणि सामान",
   },
   "od-IN": {
     received: (a) => `${BRAND.spokenOn["od-IN"]} ${a} ମିଳିଲା।`,
@@ -111,6 +129,8 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     saved: "ବିକ୍ରି ଲେଖାହେଲା।",
     choose: "କେଉଁ ପେମେଣ୍ଟ? ସ୍କ୍ରିନରେ ଦବାନ୍ତୁ।",
     poweredOn: "ସାଉଣ୍ଡବକ୍ସ ଚାଲୁ ଅଛି।",
+    payRequest: (a, w) => `ଦୟାକରି ${a} ଦିଅନ୍ତୁ${w ? `, ${w} ପାଇଁ` : ""}। QR ସ୍କାନ କରନ୍ତୁ।`,
+    billHint: "କହି ବିଲ କରନ୍ତୁ: ଟଙ୍କା ଓ ଜିନିଷ",
   },
   "pa-IN": {
     received: (a) => `${BRAND.spokenOn["pa-IN"]} ${a} ਪ੍ਰਾਪਤ ਹੋਏ।`,
@@ -121,6 +141,8 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     saved: "ਵਿਕਰੀ ਦਰਜ ਹੋ ਗਈ।",
     choose: "ਕਿਹੜਾ ਪੇਮੈਂਟ? ਸਕ੍ਰੀਨ 'ਤੇ ਦਬਾਓ।",
     poweredOn: "ਸਾਊਂਡਬਾਕਸ ਚਾਲੂ ਹੈ।",
+    payRequest: (a, w) => `ਕਿਰਪਾ ਕਰਕੇ ${a} ਦਾ ਭੁਗਤਾਨ ਕਰੋ${w ? `, ${w} ਲਈ` : ""}। QR ਸਕੈਨ ਕਰੋ।`,
+    billHint: "ਬੋਲ ਕੇ ਬਿੱਲ ਬਣਾਓ: ਰਕਮ ਅਤੇ ਸਾਮਾਨ",
   },
   "ta-IN": {
     received: (a) => `${BRAND.spokenOn["ta-IN"]} ${a} பெறப்பட்டது.`,
@@ -131,6 +153,8 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     saved: "விற்பனை பதிவு செய்யப்பட்டது.",
     choose: "எந்த பணம்? திரையில் அழுத்தவும்.",
     poweredOn: "சவுண்ட்பாக்ஸ் இயங்குகிறது.",
+    payRequest: (a, w) => `தயவுசெய்து ${a} செலுத்துங்கள்${w ? `, ${w} க்கு` : ""}. QR ஸ்கேன் செய்யுங்கள்.`,
+    billHint: "சொல்லி பில் போடுங்கள்: தொகை, பொருட்கள்",
   },
   "te-IN": {
     received: (a) => `${BRAND.spokenOn["te-IN"]} ${a} అందాయి.`,
@@ -141,6 +165,8 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     saved: "అమ్మకం నమోదైంది.",
     choose: "ఏ చెల్లింపు? స్క్రీన్‌పై నొక్కండి.",
     poweredOn: "సౌండ్‌బాక్స్ ఆన్‌లో ఉంది.",
+    payRequest: (a, w) => `దయచేసి ${a} చెల్లించండి${w ? `, ${w} కోసం` : ""}. QR స్కాన్ చేయండి.`,
+    billHint: "చెప్పి బిల్లు చేయండి: మొత్తం, సరుకులు",
   },
 };
 
@@ -196,4 +222,9 @@ export function announcePayment(
   const p = phrasesFor(lang);
   const said = p.received(spokenAmount(payment.amountInr, lang));
   return payment.billId ? `${said} ${p.billPaid(spokenBill(payment.billId))}` : said;
+}
+
+/** "Please pay 826 rupees for two kilo atta…", for a bill sent to the box. */
+export function announceRequest(request: { amountInr: number; text: string }, lang: VoiceLanguage): string {
+  return phrasesFor(lang).payRequest(spokenAmount(request.amountInr, lang), request.text.trim());
 }

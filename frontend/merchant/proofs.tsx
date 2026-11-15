@@ -132,7 +132,7 @@ function ProofCard({
               )}
               <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-emerald-800">
                 <span>{secondsAfter(t)} s after payment</span>
-                <span>· {t.tag.source === "bill" ? "from bill" : t.tag.source === "voice" ? "by voice" : "recorded clip"}</span>
+                <span>· {t.tag.source === "bill" ? "from bill" : t.tag.source === "voice" ? "by voice" : t.tag.source === "typed" ? "written on phone" : "recorded clip"}</span>
                 <BoundByChip boundBy={t.tag.boundBy} />
               </div>
             </div>

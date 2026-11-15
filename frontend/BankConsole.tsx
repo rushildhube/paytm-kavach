@@ -5,10 +5,9 @@ import type { BankSnapshot } from "@backend/api";
 import { DEMO_PAYMENT } from "@data/seed";
 import type { HoldScope } from "@backend/types";
 import { inr, when } from "./parts";
+import { BTN, CARD, PAGE, ScreenHeader, StepNumber } from "./ui";
 import { useLive } from "./useLive";
 
-const btn =
-  "rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40";
 
 /**
  * The bank and cybercrime side of the story, on the presenter's laptop.
@@ -46,29 +45,31 @@ export default function BankConsole() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
-      <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-900 px-6 py-4 text-white">
-        <div>
-          <div className="text-xs uppercase tracking-wide text-slate-400">Simulation · synthetic data</div>
-          <h1 className="text-xl font-semibold">{state.merchant.bankName} · Cyber fraud desk</h1>
-        </div>
-        <div className="flex items-center gap-3 text-sm">
-          {state.simulatedDays > 0 && (
-            <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-black">
-              Simulated day {state.simulatedDays}
-            </span>
-          )}
-          <button onClick={reset} disabled={busy !== null} className={`${btn} bg-white/10 text-white hover:bg-white/20`}>
-            Reset whole demo
-          </button>
-        </div>
-      </header>
+    <div className={`min-h-dvh ${PAGE}`}>
+      <ScreenHeader
+        title={`${state.merchant.bankName} · Cyber fraud desk`}
+        subtitle="Simulation · synthetic data"
+        right={
+          <>
+            {state.simulatedDays > 0 && (
+              <span className="rounded-full bg-brand-tint px-3 py-1 text-xs font-semibold text-brand-navy">
+                Simulated day {state.simulatedDays}
+              </span>
+            )}
+            <button onClick={reset} disabled={busy !== null} className={BTN.quiet}>
+              Reset whole demo
+            </button>
+          </>
+        }
+        className="sticky top-0 z-10"
+      />
+      <div className="mx-auto max-w-6xl p-4 sm:p-6">
 
-      {error && <p className="mt-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
+      {error && <p className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
         {/* step 1 */}
-        <section className="rounded-2xl bg-white p-5 shadow-sm">
+        <section className={`${CARD} p-5`}>
           <Step n={1} title="Victim calls 1930 / files on NCRP" />
           <p className="mt-2 text-sm text-slate-600">
             The real owner of the payer&apos;s account finds money missing and reports it. The
@@ -84,12 +85,12 @@ export default function BankConsole() {
                   </div>
                 </div>
                 {t.reported ? (
-                  <span className="rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">Reported</span>
+                  <span className="rounded-full bg-brand-tint px-3 py-1 text-xs font-semibold text-brand-navy">Reported</span>
                 ) : (
                   <button
                     onClick={() => call({ action: "report", txnId: t.id })}
                     disabled={busy !== null || report !== null}
-                    className={`${btn} bg-amber-500 text-black`}
+                    className={BTN.outline}
                   >
                     Report
                   </button>
@@ -98,10 +99,10 @@ export default function BankConsole() {
             ))}
           </ul>
           {report && (
-            <div className="mt-3 rounded-lg bg-amber-50 p-3 text-sm">
-              <div className="font-semibold text-amber-900">Complaint registered</div>
-              <div className="text-amber-900">Ack no. {report.ackNo}</div>
-              <div className="mt-1 text-xs text-amber-800">
+            <div className="mt-3 rounded-xl bg-brand-tint p-3 text-sm">
+              <div className="font-semibold text-brand-navy">Complaint registered</div>
+              <div className="text-brand-navy">Ack no. {report.ackNo}</div>
+              <div className="mt-1 text-xs text-slate-600">
                 The merchant&apos;s phone and Soundbox show nothing yet. Kavach never warns a
                 merchant before a hold exists.
               </div>
@@ -115,7 +116,7 @@ export default function BankConsole() {
         </section>
 
         {/* step 2 */}
-        <section className="rounded-2xl bg-white p-5 shadow-sm">
+        <section className={`${CARD} p-5`}>
           <Step n={2} title="Bank acts on the notice" />
           <p className="mt-2 text-sm text-slate-600">
             The complaint system sends a notice to the bank that received the money. The bank
@@ -138,12 +139,12 @@ export default function BankConsole() {
           <button
             onClick={() => report && call({ action: "hold", txnId: report.txnId, scope })}
             disabled={busy !== null || !report || !!hold}
-            className={`${btn} mt-3 w-full bg-red-600 text-white`}
+            className={`${BTN.danger} mt-3 w-full`}
           >
             Apply restriction
           </button>
           {hold && (
-            <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-900">
+            <div className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-900">
               <div className="font-semibold">
                 {hold.scope === "debit_freeze" ? "Debit freeze applied" : `Lien of ${inr(hold.heldAmountInr)} applied`}
               </div>
@@ -155,12 +156,12 @@ export default function BankConsole() {
         </section>
 
         {/* step 3 */}
-        <section className="rounded-2xl bg-white p-5 shadow-sm">
+        <section className={`${CARD} p-5`}>
           <Step n={3} title="Merchant's grievance" />
           <p className="mt-2 text-sm text-slate-600">
             Kavach drafts; the merchant reviews it and files it at this bank themselves.
           </p>
-          <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm">
+          <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm">
             {!hold && "No restriction yet."}
             {hold && !filed && "Waiting for the merchant to file."}
             {filed && tracker && (
@@ -178,7 +179,7 @@ export default function BankConsole() {
           <button
             onClick={day15}
             disabled={busy !== null || !filed || tracker?.stage === "escalation_due"}
-            className={`${btn} mt-3 w-full bg-slate-900 text-white`}
+            className={`${BTN.navy} mt-3 w-full`}
           >
             Simulate day {tracker?.escalateAfterDays ?? 15} with no reply
           </button>
@@ -186,17 +187,17 @@ export default function BankConsole() {
       </div>
 
       {/* law watcher */}
-      <section className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
+      <section className={`${CARD} mt-4 p-5`}>
         <Step n={4} title="Law watcher" />
         <p className="mt-2 text-sm text-slate-600">
           Kavach watches official feeds and flags rules that may have changed. It never edits a
           rule itself; a person re-reads the source.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <button onClick={() => call({ action: "check-feeds" })} disabled={busy !== null} className={`${btn} border border-slate-300 text-slate-800`}>
+          <button onClick={() => call({ action: "check-feeds" })} disabled={busy !== null} className={BTN.quiet}>
             Check feeds now
           </button>
-          <button onClick={() => call({ action: "simulate-law-change" })} disabled={busy !== null} className={`${btn} bg-amber-500 text-black`}>
+          <button onClick={() => call({ action: "simulate-law-change" })} disabled={busy !== null} className={BTN.outline}>
             Simulate a change to the MHA procedure
           </button>
         </div>
@@ -207,7 +208,7 @@ export default function BankConsole() {
       </section>
 
       {/* links */}
-      <section className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
+      <section className={`${CARD} mt-4 p-5`}>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Open on the phones</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {[
@@ -215,21 +216,22 @@ export default function BankConsole() {
             ["Soundbox", "/soundbox"],
             ["Merchant app", "/merchant"],
           ].map(([label, path]) => (
-            <a key={path} href={path} target="_blank" rel="noreferrer" className="rounded-lg border border-slate-200 p-3 hover:bg-slate-50">
-              <div className="font-semibold text-slate-900">{label}</div>
+            <a key={path} href={path} target="_blank" rel="noreferrer" className="rounded-xl border border-slate-200 p-3 hover:border-brand hover:bg-brand-tint">
+              <div className="font-semibold text-brand-navy">{label}</div>
               <div className="break-all font-mono text-xs text-slate-500">{origin}{path}</div>
             </a>
           ))}
         </div>
       </section>
+      </div>
     </div>
   );
 }
 
 function Step({ n, title }: { n: number; title: string }) {
   return (
-    <h2 className="flex items-center gap-2 font-semibold text-slate-900">
-      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-sm text-white">{n}</span>
+    <h2 className="flex items-center gap-2 font-semibold text-brand-navy">
+      <StepNumber n={n} />
       {title}
     </h2>
   );
@@ -247,8 +249,8 @@ function ScopeOption({
   sub: string;
 }) {
   return (
-    <label className={`flex cursor-pointer gap-3 rounded-lg border p-3 ${checked ? "border-red-500 bg-red-50" : "border-slate-200"}`}>
-      <input type="radio" checked={checked} onChange={onChange} className="mt-1" />
+    <label className={`flex cursor-pointer gap-3 rounded-xl border-2 p-3 ${checked ? "border-brand bg-brand-tint" : "border-slate-200"}`}>
+      <input type="radio" checked={checked} onChange={onChange} className="mt-1 accent-brand" />
       <span>
         <span className="block text-sm font-semibold text-slate-900">{title}</span>
         <span className="block text-xs text-slate-600">{sub}</span>

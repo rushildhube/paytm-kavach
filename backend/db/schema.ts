@@ -174,5 +174,27 @@ export const MIGRATIONS: readonly string[] = [
    'The file and its name are never stored, only the fingerprint, which cannot be turned back into the file.',
    'Kept with the payment while it may be needed as proof of sale, that is until any hold and grievance on it are closed. Automatic erasure after that is not built yet; in the demo, Reset erases everything.');
   `,
-];
 
+  // 4: a sale description the merchant types on the phone for a payment that
+  // came without a bill ("typed"). SQLite cannot change a CHECK, so the table is
+  // rebuilt with its rows and both append-only triggers. Still only inside the
+  // tag window, through recordSaleTag.
+  `
+  CREATE TABLE sale_tags_v3 (
+    txn_id      TEXT PRIMARY KEY REFERENCES transactions(id),
+    recorded_at TEXT NOT NULL,
+    transcript  TEXT NOT NULL CHECK (length(transcript) > 0),
+    items       TEXT NOT NULL,
+    source      TEXT NOT NULL CHECK (source IN ('voice', 'recorded_clip', 'bill', 'typed')),
+    bound_by    TEXT CHECK (bound_by IN ('bill', 'tap', 'only_open', 'amount', 'amount_and_name')),
+    bill_id     TEXT
+  );
+  INSERT INTO sale_tags_v3 SELECT txn_id, recorded_at, transcript, items, source, bound_by, bill_id FROM sale_tags;
+  DROP TABLE sale_tags;
+  ALTER TABLE sale_tags_v3 RENAME TO sale_tags;
+  CREATE TRIGGER sale_tags_no_update BEFORE UPDATE ON sale_tags
+  BEGIN SELECT RAISE(ABORT, 'sale tags are append-only'); END;
+  CREATE TRIGGER sale_tags_no_delete BEFORE DELETE ON sale_tags
+  BEGIN SELECT RAISE(ABORT, 'sale tags are append-only'); END;
+  `,
+];
