@@ -1,0 +1,23 @@
+# Render blueprint for the live demo (https://kavach-demo.onrender.com).
+# Auto-deploy is off: GitHub Actions (.github/workflows/ci.yml) calls the
+# service's deploy hook only after typecheck, lint, tests and build pass on main.
+services:
+  - type: web
+    name: kavach-demo
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    autoDeployTrigger: "off"
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 22.23.1
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: TAG_THRESHOLD_INR
+        value: "500"
+      # Set in the Render dashboard; never committed.
+      - key: SARVAM_API_KEY
+        sync: false

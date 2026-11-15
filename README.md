@@ -19,6 +19,14 @@ npm test          # guardrail and scenario tests
 npm run typecheck
 ```
 
+## Live demo and deploy
+
+The demo runs at https://kavach-demo.onrender.com (`/customer`, `/soundbox`, `/merchant`, `/bank`; `/` is the single-screen fallback). It is on Render's free plan: the first request after 15 idle minutes takes about a minute, and a restart reseeds the synthetic data. Press Reset on the bank screen before a run.
+
+- **CI** (`.github/workflows/ci.yml`): every pull request and push to `main` runs typecheck, lint, tests and a production build.
+- **CD:** when that passes on `main`, the workflow calls the Render deploy hook stored in the repository secret `RENDER_DEPLOY_HOOK_URL`. Render's own auto-deploy is off, so a failing build never ships.
+- **Service settings** are in `render.yaml`. `SARVAM_API_KEY` is set in the Render dashboard only.
+
 ## Layout
 
 | Folder | Holds |
