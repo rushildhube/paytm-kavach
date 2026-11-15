@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "smoke:live": "node tests/e2e/live-smoke.mjs"
   },
   "dependencies": {
     "jsqr": "^1.4.0",
