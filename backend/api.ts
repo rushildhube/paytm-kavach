@@ -50,6 +50,7 @@ import {
   recordPayment,
   recordSaleTag,
 } from "./ledger";
+import { getInvoice, recordInvoice } from "./invoices";
 import { escalationTarget, ladder } from "./rules";
 import { checkFeeds, clearDemoAlerts, ensureWatcher, injectDemoItem, watchStatus } from "./watcher";
 import {
@@ -82,6 +83,7 @@ function merchantTransactions() {
   return listTransactions(merchant.id)
     .map((t) => {
       const tag = getSaleTag(t.id) ?? null;
+      const invoice = getInvoice(t.id) ?? null;
       const hold = holdForTransaction(t.id);
       const secondsLeft = Math.max(
         0,
@@ -92,6 +94,9 @@ function merchantTransactions() {
         tag,
         hold,
         canTag: !tag && !hold && secondsLeft > 0 && needsTag(t.amountInr),
+        invoice,
+        // Any amount: attaching a bill is the merchant's choice, not a prompt.
+        canAttachInvoice: !invoice && !hold && secondsLeft > 0,
         secondsLeft,
       };
     })
@@ -298,6 +303,17 @@ function ownHold(holdId: string): Hold {
   const hold = getHold(holdId);
   ownTransaction(hold.txnId);
   return hold;
+}
+
+/**
+ * `POST /api/invoice`: attach an invoice file to one of the active merchant's
+ * payments. Multipart, so it does not go through `handle`; the reply has the
+ * same `{ result, state }` shape for the merchant screen.
+ */
+export function attachInvoice(input: { txnId: string; bytes: Uint8Array; totalInr?: number | null }) {
+  ownTransaction(input.txnId);
+  const result = recordInvoice(input);
+  return { result, state: snapshot() };
 }
 
 /** Single entry point used by the API route. Returns fresh state for the asking screen. */

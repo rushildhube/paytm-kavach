@@ -1,5 +1,6 @@
 import { DISCLAIMER } from "./config";
 import { getHold } from "./holds";
+import { getInvoice } from "./invoices";
 import { getSaleTag, getTransaction } from "./ledger";
 import { getMerchant } from "./store";
 import type { Hold, SaleItem } from "./types";
@@ -29,6 +30,14 @@ export type SaleCertificate = {
     transcript: string;
     items: SaleItem[];
   } | null;
+  /** An invoice file the merchant attached at payment time: its fingerprint only. Null if none. */
+  invoice: {
+    attachedAt: string;
+    secondsAfterPayment: number;
+    sha256: string;
+    kind: string;
+    totalInr: number | null;
+  } | null;
   hold: Pick<Hold, "reference" | "type" | "scope" | "heldAmountInr" | "placedAt">;
   provenance: string[];
   disclaimer: string;
@@ -40,6 +49,9 @@ export function buildCertificate(holdId: string, generatedAt: Date): SaleCertifi
   const txn = getTransaction(hold.txnId);
   const merchant = getMerchant(txn.merchantId);
   const tag = getSaleTag(txn.id);
+  const invoice = getInvoice(txn.id);
+  const secondsAfterPayment = (at: string) =>
+    Math.round((Date.parse(at) - Date.parse(txn.at)) / 1000);
 
   return {
     certificateId: `KVC-${txn.id}`,
@@ -61,11 +73,18 @@ export function buildCertificate(holdId: string, generatedAt: Date): SaleCertifi
     saleTag: tag
       ? {
           recordedAt: tag.recordedAt,
-          secondsAfterPayment: Math.round(
-            (Date.parse(tag.recordedAt) - Date.parse(txn.at)) / 1000,
-          ),
+          secondsAfterPayment: secondsAfterPayment(tag.recordedAt),
           transcript: tag.transcript,
           items: tag.items,
+        }
+      : null,
+    invoice: invoice
+      ? {
+          attachedAt: invoice.attachedAt,
+          secondsAfterPayment: secondsAfterPayment(invoice.attachedAt),
+          sha256: invoice.sha256,
+          kind: invoice.kind,
+          totalInr: invoice.totalInr,
         }
       : null,
     hold: {
@@ -80,6 +99,11 @@ export function buildCertificate(holdId: string, generatedAt: Date): SaleCertifi
       tag
         ? "The sale description is the merchant's own statement, recorded at payment time and before any hold. It cannot be added or edited later."
         : "No sale description was recorded at payment time for this payment.",
+      ...(invoice
+        ? [
+            "An invoice file was attached by the merchant at payment time, before any hold. Only its SHA-256 fingerprint is kept, so the merchant's copy can be checked against it; its contents are the merchant's and are not verified by the payment company.",
+          ]
+        : []),
     ],
     disclaimer: DISCLAIMER,
   };
