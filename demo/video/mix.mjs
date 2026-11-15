@@ -26,7 +26,7 @@ execFileSync(
   ["-y", "-hide_banner", "-loglevel", "error", ...inputs, "-filter_complex", filters.join(";"), "-map", "0:v", "-map", "[aout]",
     "-ss", start, "-t", (endT - Number(start)).toFixed(2),
     "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-r", "30",
-    "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", out],
+    "-c:a", "libmp3lame", "-b:a", "192k", "-ar", "48000", "-ac", "2", "-movflags", "+faststart", out],
   { stdio: "inherit" },
 );
 console.log(`wrote ${out}`);

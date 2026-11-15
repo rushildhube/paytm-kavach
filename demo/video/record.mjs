@@ -164,7 +164,6 @@ async function guard(name, ui, fallback) {
     try { await fallback(); } catch (f) { console.warn(`fallback for "${name}" failed: ${f.message}`); }
   }
 }
-const segText = Object.fromEntries(vo.segments.map((s) => [s.id, s.text]));
 /** Starts a narration segment; resolves when it has been spoken (plus a pause). */
 async function say(id, caption, pauseMs = 450) {
   cues.push({ id, t: (Date.now() - t0) / 1000 });
@@ -173,7 +172,6 @@ async function say(id, caption, pauseMs = 450) {
 }
 const focus = (...ids) => page.evaluate((x) => window.focusOn(x), ids);
 const scroll = (frame, y) => frame.locator("body").evaluate((_, dy) => window.scrollBy({ top: dy, behavior: "smooth" }), y);
-const scrollTop = (frame) => frame.locator("body").evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
 
 try {
   // Wait for all four screens, then switch the Soundbox on (behind the title card).
@@ -404,7 +402,7 @@ execFileSync(
     "-map", "0:v", "-map", "[aout]",
     "-ss", start, "-t", (endT - Number(start)).toFixed(2),
     "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p", "-r", "30",
-    "-c:a", "aac", "-b:a", "192k",
+    "-c:a", "libmp3lame", "-b:a", "192k", "-ar", "48000", "-ac", "2",
     "-movflags", "+faststart",
     out,
   ],
