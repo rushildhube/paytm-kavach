@@ -49,3 +49,7 @@ certificates
 
 # Agent worktrees
 .claude/worktrees/
+
+# demo video build output (upload the mp4, do not commit it)
+/demo/video/*.mp4
+/demo/video/cues.json

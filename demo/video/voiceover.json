@@ -1,0 +1,91 @@
+{
+  "_note": "Voice-over for the Kavach demo video (refs #14). Narration in Indian English, Soundbox lines in Hindi as the box says them. Model bulbul:v4-flash (Sarvam's newest, 'recommended for new integrations', docs checked 2026-11-15) with its persona voices. Generate: node demo/video/gen-voiceover.mjs [--force]. Wording follows the guardrails: a drafting aid, no promised release, legal facts only from rules/, no statistics without a source.",
+  "model": "bulbul:v4-flash",
+  "narrator": {
+    "language": "en-IN",
+    "speaker": "simran_en_narration",
+    "pace": 1.05
+  },
+  "soundbox": {
+    "language": "hi-IN",
+    "speaker": "ishita_hi_banking",
+    "pace": 1.05
+  },
+  "segments": [
+    {
+      "id": "01-problem",
+      "voice": "narrator",
+      "text": "When a payment to a merchant is later reported as fraud, the merchant's bank account can be frozen. Most of these merchants are honest. But by the time the hold arrives, weeks have passed, and they have no record of what was sold."
+    },
+    {
+      "id": "02-idea",
+      "voice": "narrator",
+      "text": "Today's tools help a merchant write a letter after the account is frozen. Kavach ensures the proof already exists before the freeze happens. It captures what was sold at the moment of payment, and binds it to the payment company's own transaction record. This demo runs on four live screens: the buyer, the Soundbox, the merchant, and the bank."
+    },
+    {
+      "id": "03-bill",
+      "voice": "narrator",
+      "text": "A customer buys two kilograms of sugar and one oil, for eight hundred and twenty six rupees. The merchant creates a bill on their phone and sends it to the Soundbox, which displays the bill's QR code and announces the amount."
+    },
+    {
+      "id": "03s-request",
+      "voice": "soundbox",
+      "text": "कृपया 826 रुपये का भुगतान करें, दो किलो चीनी, एक तेल के लिए।"
+    },
+    {
+      "id": "04-pay",
+      "voice": "narrator",
+      "text": "The buyer scans the QR code and pays with their UPI PIN. They see only the amount and the shop."
+    },
+    {
+      "id": "04s-received",
+      "voice": "soundbox",
+      "text": "एआईटीएम पर 826 रुपये प्राप्त हुए। बिल का भुगतान हो गया।"
+    },
+    {
+      "id": "04b-proof",
+      "voice": "narrator",
+      "text": "At the instant the money arrives, the bill and the payment are bound together into a single record. That record is append-only. It cannot be edited, and nothing can be added later. The merchant's app shows the proof against the payment, with a label indicating its strength."
+    },
+    {
+      "id": "05-direct",
+      "voice": "narrator",
+      "text": "When a buyer pays the shop QR directly, without a bill, the Soundbox asks what was sold. The merchant answers by voice, in their own language. The window closes two minutes after the payment."
+    },
+    {
+      "id": "06-report",
+      "voice": "narrator",
+      "text": "Days later, the eight hundred and twenty six rupee payment is reported as fraud, and the complaint reaches the bank. Note that the merchant's app and the Soundbox show nothing. Kavach never alerts a merchant before a hold exists."
+    },
+    {
+      "id": "07-hold",
+      "voice": "narrator",
+      "text": "The bank applies a lien on that single payment, as the Home Ministry's procedure requires. The merchant's app now shows the hold, and explains in Hindi that only eight hundred and twenty six rupees is held, not the entire account."
+    },
+    {
+      "id": "08-screen",
+      "voice": "narrator",
+      "text": "Before any document is prepared, two screening questions. Did you lend your account to anyone? Did you receive money for a commission? Anyone who answers yes is referred to legal aid. Kavach does not assist money mules."
+    },
+    {
+      "id": "09-packet",
+      "voice": "narrator",
+      "text": "For an honest merchant, Kavach prepares a sale certificate, which keeps the payment company's records separate from the merchant's own words. It also drafts a grievance letter, in which every rule cited carries its source and the date it was verified. The facts come from a verified rules table. The model only writes the language."
+    },
+    {
+      "id": "09b-human",
+      "voice": "narrator",
+      "text": "Every document is a draft, not legal advice, and release is not guaranteed. The merchant reviews it and files it through their own bank. Kavach never submits anything."
+    },
+    {
+      "id": "10-day22",
+      "voice": "narrator",
+      "text": "The bank has seven days to respond, and the police fifteen more. On day twenty two, without a decision, the escalation to the District Grievance Officer is ready."
+    },
+    {
+      "id": "11-close",
+      "voice": "narrator",
+      "text": "Kavach. Proof at the moment of sale, verified against payment records, delivered through the Soundbox merchants already use. The proof exists before the freeze."
+    }
+  ]
+}
