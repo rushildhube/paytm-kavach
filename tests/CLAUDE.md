@@ -31,6 +31,7 @@ Run with `npm test` (Vitest, `vitest.config.mts`, node environment, same path al
   - draft checks: unknown rule, law outside the table, promised outcome, unlisted amount all rejected; markers render as numbered references.
   - ₹826 scenario: payment, Hindi tag, hold, certificate, then all three template drafts pass `checkDraft` and carry a disclaimer.
   - item parsing (romanised Hindi, sentence ends, unquantified items); STT request strips the codecs MIME parameter; the model prompt carries IST, not raw UTC.
+- `voice-language.test.ts` — announcement phrases for all 11 languages (digits, paise, bill number, Hindi/English amounts round-trip through `spokenAmountsInr`), language validation and speaker map (v3 short names only), Sarvam TTS/STT request bodies, and the voice routes (language passed, `auto` → `unknown`, default `hi-IN`, 400 on unknown, no client-chosen speaker, 503 without a key). Fetch is stubbed.
 - `watcher.test.ts` — RSS/Atom parsing, matching only items on or after `last_checked`, undated-item baseline, failing feed reported, the watcher never writes to `rules/`, and the simulated law change flags rules while reset clears only simulated alerts.
 
 ## Rules for this folder
