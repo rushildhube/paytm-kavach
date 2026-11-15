@@ -48,6 +48,10 @@ export default function SoundboxApp() {
   const [lastId, setLastId] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
+  // The mic failed (no permission, no device, plain http on a phone). Without
+  // a fallback every open payment would expire untagged on stage, so the box
+  // offers the recorded clip, as it does without a Sarvam key.
+  const [micFailed, setMicFailed] = useState(false);
   const [target, setTarget] = useState<string | null>(null);
   const seen = useRef<Set<string> | null>(null);
   const meter = useRef<HTMLDivElement | null>(null);
@@ -205,6 +209,7 @@ export default function SoundboxApp() {
       setPhase({ kind: "idle" });
       // No microphone: let the announcements carry on.
       void recorder.start().then((ok) => {
+        setMicFailed(!ok);
         if (!ok) resumeSpeech();
       });
     },
@@ -233,7 +238,7 @@ export default function SoundboxApp() {
   const onCard = (p: Card) => {
     if (working || recorder.recording) return;
     if (phase.kind === "choose") return void tagTo(p.id, phase.transcript, phase.source, phase.candidates);
-    if (!sarvam) return void tagTo(p.id, DEMO_PAYMENT.spokenTag, "recorded_clip");
+    if (!sarvam || micFailed) return void tagTo(p.id, DEMO_PAYMENT.spokenTag, "recorded_clip");
     startListening(p.id);
   };
 
@@ -381,7 +386,7 @@ export default function SoundboxApp() {
                   Discard and speak again
                 </button>
               )}
-              {!sarvam && open.length > 0 && phase.kind !== "choose" && (
+              {(!sarvam || micFailed) && open.length > 0 && phase.kind !== "choose" && (
                 <button
                   onClick={() => submit(DEMO_PAYMENT.spokenTag, "recorded_clip")}
                   disabled={working}
@@ -437,7 +442,7 @@ export default function SoundboxApp() {
                             {p.secondsLeft}s
                           </span>
                           <span className="text-xs text-slate-500">
-                            {phase.kind === "choose" ? "Tap: this one" : sarvam ? "Tap and speak" : "Tap to tag"}
+                            {phase.kind === "choose" ? "Tap: this one" : sarvam && !micFailed ? "Tap and speak" : "Tap to tag"}
                           </span>
                         </span>
                       </button>
