@@ -55,3 +55,40 @@ jobs:
           fi
           curl -fsS -X POST "$HOOK" > /dev/null
           echo "Deploy of ${GITHUB_SHA::7} requested."
+
+  smoke:
+    name: Smoke test the live deploy
+    needs: deploy
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: deploy-render
+      cancel-in-progress: false
+    env:
+      KAVACH_URL: https://kavach-demo.onrender.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Wait until Render serves this commit
+        run: |
+          for i in $(seq 1 60); do
+            served=$(curl -fsS "$KAVACH_URL/api/health" 2>/dev/null | sed -n 's/.*"commit":"\([0-9a-f]*\)".*/\1/p')
+            if [ "$served" = "$GITHUB_SHA" ]; then echo "Live at ${GITHUB_SHA::7}."; exit 0; fi
+            echo "Serving ${served:-nothing yet}, waiting for ${GITHUB_SHA::7}..."
+            sleep 15
+          done
+          echo "::error::Render did not serve ${GITHUB_SHA::7} within 15 minutes."
+          exit 1
+      - run: npm ci
+      - run: npx playwright-core install --with-deps chromium
+      - run: npm run smoke:live
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-out
+          path: smoke-out/
+          if-no-files-found: ignore
