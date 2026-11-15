@@ -2,7 +2,7 @@ import { DISCLAIMER } from "./config";
 import { getHold } from "./holds";
 import { getSaleTag, getTransaction } from "./ledger";
 import { getMerchant } from "./store";
-import type { Hold, SaleItem } from "./types";
+import type { Hold, SaleItem, SaleTag } from "./types";
 
 export type SaleCertificate = {
   certificateId: string;
@@ -28,10 +28,23 @@ export type SaleCertificate = {
     secondsAfterPayment: number;
     transcript: string;
     items: SaleItem[];
+    source: SaleTag["source"];
+    /** How the tag was tied to this payment; absent on older records. */
+    boundBy: SaleTag["boundBy"] | null;
+    billId: string | null;
   } | null;
   hold: Pick<Hold, "reference" | "type" | "scope" | "heldAmountInr" | "placedAt">;
   provenance: string[];
   disclaimer: string;
+};
+
+/** How the description was tied to this payment, so a reader can judge its weight (#15, #19). */
+const BOUND_BY_LINE: Record<NonNullable<SaleTag["boundBy"]>, string> = {
+  bill: "The description is the bill the merchant created before the payment; the buyer paid that bill's QR.",
+  tap: "The merchant picked this payment on the Soundbox when recording the description.",
+  only_open: "This was the only payment waiting for a description when it was recorded.",
+  amount: "The amount the merchant said matched this payment and no other open payment.",
+  amount_and_name: "The amount and payer name the merchant said matched this payment and no other open payment.",
 };
 
 /** Pure assembly from records. No model involved. */
@@ -66,6 +79,9 @@ export function buildCertificate(holdId: string, generatedAt: Date): SaleCertifi
           ),
           transcript: tag.transcript,
           items: tag.items,
+          source: tag.source,
+          boundBy: tag.boundBy ?? null,
+          billId: tag.billId ?? null,
         }
       : null,
     hold: {
@@ -80,6 +96,7 @@ export function buildCertificate(holdId: string, generatedAt: Date): SaleCertifi
       tag
         ? "The sale description is the merchant's own statement, recorded at payment time and before any hold. It cannot be added or edited later."
         : "No sale description was recorded at payment time for this payment.",
+      ...(tag?.boundBy ? [BOUND_BY_LINE[tag.boundBy]] : []),
     ],
     disclaimer: DISCLAIMER,
   };
