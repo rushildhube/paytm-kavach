@@ -6,7 +6,7 @@
 const g = globalThis as unknown as { __kavachRate?: Map<string, number[]> };
 
 /** Requests allowed per client per minute, by bucket. */
-export const RATE_LIMITS = { voice: 30, draft: 12 } as const;
+export const RATE_LIMITS = { voice: 30, draft: 12, upload: 20 } as const;
 
 export class RateLimited extends Error {
   constructor() {
