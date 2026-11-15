@@ -36,6 +36,7 @@ State lives in SQLite through `node:sqlite` (`DatabaseSync`, built into Node 24;
 
 - `db/schema.ts` — `MIGRATIONS` (numbered SQL strings; `PRAGMA user_version` is the number applied). To change the schema, **append** a migration; never edit an old one. A database newer than the code (e.g. after switching branches) is dropped and reseeded, since it holds demo data only.
 - Tables: `merchants` (`account_last4` CHECKed to four digits), `transactions` (`bill_id`; `payer_vpa_masked` CHECKed to contain `*`), `sale_tags` (`items` JSON, `bound_by`, `bill_id`), `bills`, `reports`, `holds`, `screenings`, `grievances`, `meta` (`epoch`, `clock_offset_ms`, `active_merchant_id`, `next_txn`/`next_hold`/`next_report`/`next_bill` counters).
+- Migration 3 adds `data_purposes` (issue #25): one row per stored column of buyer-related data (`transactions.payer_vpa_masked`, `sale_tags.transcript`, `bills.text`, `invoices.sha256`) with what it is, why it is held, how it is minimised and how long it is kept. It is Kavach's policy, not a legal citation (the DPDP Act is not yet in `rules/`). It changes only by a new migration (UPDATE and DELETE refused) and survives Reset. Read it with the `data-purposes` action (any role). A new buyer-related column needs a row here, and `tests/data-purposes.test.ts` lists them.
 - Migration 2 adds `invoices` (one per payment: `sha256`, `kind` pdf/jpeg/png/webp, `size_bytes` ≤ 2 MB, optional `total_inr`; no file bytes or name). UPDATE and DELETE are refused by trigger ("invoices are append-only").
 - Triggers: `sale_tags` refuses every UPDATE and DELETE ("sale tags are append-only"); `bills` refuses changes to its content and any status change once it has left `open`, and refuses DELETE; `screenings` refuses UPDATE.
 - `db/connection.ts` — `db()`, `dbFile()`, `SCHEMA_VERSION`, `resetDb()` (drops every table listed in `sqlite_master`, whatever migration made it, re-runs the migrations, reseeds from `data/seed.ts`, epoch + 1; dropping the table is the only way a tag goes away), `tx(fn)` (atomic; nested calls join), `getMeta`/`setMeta`/`nextCounter`, and `all`/`one`/`run` query helpers.
@@ -61,7 +62,7 @@ State lives in SQLite through `node:sqlite` (`DatabaseSync`, built into Node 24;
 - The backend never files, emails or submits anything to a bank, police or portal. It produces drafts for the merchant to file.
 - Certificates use Paytm-side records only. Merchant-typed text appears solely as the sale tag captured at payment time, labelled as such.
 - Store last four account digits; mask buyer details in every response and log.
-- Record purpose and consent for any buyer data held (DPDP Act). Not built yet: no purpose or consent record exists.
+- Record the purpose and retention of any buyer data held (DPDP Act): add a row to `data_purposes` by migration. Consent is not recorded (the buyer never interacts with Kavach), and automatic erasure when a hold and grievance close is not built yet.
 - Every draft response carries the disclaimer fields: draft, not legal advice, no guaranteed release.
 - No pre-hold warnings to merchants.
 - Nothing here writes to `rules/`. The watcher only flags.

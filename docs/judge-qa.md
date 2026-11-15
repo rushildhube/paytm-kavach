@@ -31,7 +31,7 @@ The design is built against that:
 Kavach says nothing until a hold exists. After a hold, the MHA procedure (s.9.1(ii)) lets the bank tell the account holder which police unit ordered it, and says this "may not be considered as a tip-off". The complainant's details are never shared.
 
 **"What about the buyer's privacy?"**
-Kavach stores only the last four account digits and masks buyer details, which are personal data under the DPDP Act (unverified, from Nov 2026 research notes, for the Act's exact terms). When a payer's name is used to pick between two equal payments, it is removed from the stored transcript and never shown on the certificate.
+Kavach stores only the last four account digits and the payer's UPI handle masked (vi***@okdemo); the database refuses an unmasked one. It never stores a payer's name, phone or address. An attached invoice is kept only as a SHA-256 fingerprint, never the file. The Soundbox asks what was sold, not who bought it. Every stored piece of buyer-related data has a recorded purpose and retention (`data_purposes` table, #25). Buyer details are personal data under the DPDP Act (unverified, from Nov 2026 research notes, for the Act's exact terms).
 
 ---
 
@@ -58,7 +58,7 @@ Draft only, released 11 September 2026, proposed start 1 April 2027. Under the d
 ## Questions from `problem.md`
 
 **"What if four customers pay in the same minute?"**
-Each payment of ₹500 or more gets its own 120-second window. The merchant says the amount in the tag ("aath sau chhabbis: do kilo cheeni"), and Kavach binds it to the open payment with that amount. If two open payments have the same amount, it compares the spoken name with the UPI payer name. If still unsure, it asks the merchant to tap the right payment. It never guesses. A wrong tag is worse than a missing one. The demo today shows one payment at a time; the multi-payment flow is the chosen direction, not built.
+Each payment of ₹500 or more gets its own 120-second window. The merchant says the amount in the tag ("aath sau chhabbis: do kilo cheeni"), and Kavach binds it to the open payment with that amount (Hindi or English number words, or digits). If two open payments have the same amount, or none matches, it asks the merchant to tap the right payment. It never guesses. A wrong tag is worse than a missing one. A bill made before the payment avoids the question entirely: the bill id binds it. Built and in the demo. We decided not to use the payer's name as a tiebreak: it would mean holding buyer data for a case a tap settles in a second (#19).
 
 **"What if the merchant misses the window in a rush?"**
 The payment stays untagged. It still gets a certificate from Paytm's own records, just without the merchant's words. Letting them tag later would let fraudsters do the same.
