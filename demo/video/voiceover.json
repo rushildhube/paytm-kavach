@@ -1,23 +1,31 @@
 {
   "_note": "Voice-over for the Kavach demo video (refs #14). Narration in Indian English, Soundbox lines in Hindi as the box says them. Model bulbul:v4-flash (Sarvam's newest, 'recommended for new integrations', docs checked 2026-11-15) with its persona voices. Generate: node demo/video/gen-voiceover.mjs [--force]. Wording follows the guardrails: a drafting aid, no promised release, legal facts only from rules/, no statistics without a source.",
   "model": "bulbul:v4-flash",
-  "narrator": { "language": "en-IN", "speaker": "shubh_en_narration", "pace": 1.0 },
-  "soundbox": { "language": "hi-IN", "speaker": "ishita_hi_banking", "pace": 1.05 },
+  "narrator": {
+    "language": "en-IN",
+    "speaker": "simran_en_narration",
+    "pace": 1.05
+  },
+  "soundbox": {
+    "language": "hi-IN",
+    "speaker": "ishita_hi_banking",
+    "pace": 1.05
+  },
   "segments": [
     {
       "id": "01-problem",
       "voice": "narrator",
-      "text": "Meet a kirana shopkeeper. Hundreds of customers pay them by UPI every week. But if even one of those buyers was paying with stolen money, the police can ask the bank to put a hold on the shop's account. Suddenly the shopkeeper cannot use their own money, and they are asked to prove that the sale was real. Weeks have passed. There is no bill, no record of what was sold, nothing but their memory."
+      "text": "When a payment to a merchant is later reported as fraud, the merchant's bank account can be frozen. Most of these merchants are honest. But by the time the hold arrives, weeks have passed, and they have no record of what was sold."
     },
     {
       "id": "02-idea",
       "voice": "narrator",
-      "text": "Other tools help a merchant write a letter after the account is frozen. Kavach makes sure the proof already exists before the freeze happens. It records what was sold at the moment of payment, tied to the payment company's own transaction records. Let us see it on four live screens: the buyer's phone on the left, the Soundbox on the shop counter, the shopkeeper's app, and the bank's console on the right. All four are connected, and each screen sees only what that person would really see."
+      "text": "Today's tools help a merchant write a letter after the account is frozen. Kavach ensures the proof already exists before the freeze happens. It captures what was sold at the moment of payment, and binds it to the payment company's own transaction record. This demo runs on four live screens: the buyer, the Soundbox, the merchant, and the bank."
     },
     {
       "id": "03-bill",
       "voice": "narrator",
-      "text": "A customer buys two kilos of sugar and a bottle of oil, for eight hundred and twenty six rupees. On their phone, the shopkeeper makes a bill with the amount and the items, and chooses: let the Soundbox ask for the payment. The bill goes straight to the Soundbox on the counter, which shows the bill's own QR code and speaks the request out loud."
+      "text": "A customer buys two kilograms of sugar and one oil, for eight hundred and twenty six rupees. The merchant creates a bill on their phone and sends it to the Soundbox, which displays the bill's QR code and announces the amount."
     },
     {
       "id": "03s-request",
@@ -27,7 +35,7 @@
     {
       "id": "04-pay",
       "voice": "narrator",
-      "text": "The buyer scans the QR on the Soundbox. Their payment app looks the bill up, shows the amount, and they pay with their UPI PIN. Notice what the buyer sees: only the amount and the shop. Nothing about Kavach."
+      "text": "The buyer scans the QR code and pays with their UPI PIN. They see only the amount and the shop."
     },
     {
       "id": "04s-received",
@@ -37,47 +45,47 @@
     {
       "id": "04b-proof",
       "voice": "narrator",
-      "text": "The Soundbox announces the payment, just as it does today. But behind the scenes something new has happened. The bill and the payment were joined together in the same instant the money arrived. That record is append-only: it can never be edited, and nothing can be added to it later. On the shopkeeper's app, the payment now shows its proof, and a proof strength label that tells them how much weight their records can carry."
+      "text": "At the instant the money arrives, the bill and the payment are bound together into a single record. That record is append-only. It cannot be edited, and nothing can be added later. The merchant's app shows the proof against the payment, with a label indicating its strength."
     },
     {
       "id": "05-direct",
       "voice": "narrator",
-      "text": "Not every buyer waits for a bill. Some simply scan the shop's QR and pay. For those payments, the Soundbox asks the shopkeeper what was sold, and they just say it, in their own language, with a single tap on the mic. No typing. If they miss it, they can write the bill on their phone, but only within two minutes of the payment, never afterwards."
+      "text": "When a buyer pays the shop QR directly, without a bill, the Soundbox asks what was sold. The merchant answers by voice, in their own language. The window closes two minutes after the payment."
     },
     {
       "id": "06-report",
       "voice": "narrator",
-      "text": "Now, the twist. Days later, the person who paid eight hundred and twenty six rupees turns out to be using stolen money. The victim calls the cyber crime helpline, and the complaint reaches the bank. Look at the shopkeeper's app and the Soundbox: they show nothing. Kavach never tips anyone off before a hold actually exists."
+      "text": "Days later, the eight hundred and twenty six rupee payment is reported as fraud, and the complaint reaches the bank. Note that the merchant's app and the Soundbox show nothing. Kavach never alerts a merchant before a hold exists."
     },
     {
       "id": "07-hold",
       "voice": "narrator",
-      "text": "The bank places a lien, limited to that one payment, as the Home Ministry's procedure requires. Only now does the shopkeeper's app turn red. Instead of panic, it explains in plain Hindi: only eight hundred and twenty six rupees is on hold, not your whole account. This is a hold on one payment, not an accusation. And here is what you can do."
+      "text": "The bank applies a lien on that single payment, as the Home Ministry's procedure requires. The merchant's app now shows the hold, and explains in Hindi that only eight hundred and twenty six rupees is held, not the entire account."
     },
     {
       "id": "08-screen",
       "voice": "narrator",
-      "text": "Before preparing any document, Kavach asks two honest questions. Did you lend your account to anyone else? Were you paid a commission to receive someone's money? A person who answers yes is not given an innocence letter. They are directed to free legal aid instead. Kavach protects honest merchants. It does not help money mules."
+      "text": "Before any document is prepared, two screening questions. Did you lend your account to anyone? Did you receive money for a commission? Anyone who answers yes is referred to legal aid. Kavach does not assist money mules."
     },
     {
       "id": "09-packet",
       "voice": "narrator",
-      "text": "Our shopkeeper answers no to both. Kavach now prepares two things. First, a sale certificate. It keeps the payment company's records, the transaction, the settlement and the bill, clearly separate from the shopkeeper's own words. Second, a grievance letter to the bank. Every rule it cites comes from a verified rules table, with its source and the date it was last checked. The AI writes the words, but the facts come only from that table."
+      "text": "For an honest merchant, Kavach prepares a sale certificate, which keeps the payment company's records separate from the merchant's own words. It also drafts a grievance letter, in which every rule cited carries its source and the date it was verified. The facts come from a verified rules table. The model only writes the language."
     },
     {
       "id": "09b-human",
       "voice": "narrator",
-      "text": "Everything is marked as a draft, not legal advice, with no guarantee of release. The shopkeeper reads it, and files it through their own bank. Kavach never sends anything on its own. Then they simply mark it as filed, and Kavach starts counting the days."
+      "text": "Every document is a draft, not legal advice, and release is not guaranteed. The merchant reviews it and files it through their own bank. Kavach never submits anything."
     },
     {
       "id": "10-day22",
       "voice": "narrator",
-      "text": "The bank has seven days to reply. The police officer has fifteen more. Let us jump ahead to day twenty two. No decision has come, so Kavach has the next letter ready: an escalation to the District Grievance Officer, again as a draft for the shopkeeper to file."
+      "text": "The bank has seven days to respond, and the police fifteen more. On day twenty two, without a decision, the escalation to the District Grievance Officer is ready."
     },
     {
       "id": "11-close",
       "voice": "narrator",
-      "text": "That is Kavach. Proof at the moment of sale. Verified against the payment company's own records. And delivered through the Soundbox and the app that shopkeepers already use, in their own language. Other tools write a letter after the freeze. Kavach makes sure the proof already exists before it."
+      "text": "Kavach. Proof at the moment of sale, verified against payment records, delivered through the Soundbox merchants already use. The proof exists before the freeze."
     }
   ]
 }

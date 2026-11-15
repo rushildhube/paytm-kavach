@@ -16,12 +16,13 @@ import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { chromium } from "playwright-core";
 import ffmpeg from "ffmpeg-static";
+import QRCode from "qrcode";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
 const PORT = Number(process.env.PORT ?? 3217);
 const BASE = `http://localhost:${PORT}`;
-const work = join(process.env.CLAUDE_JOB_DIR ?? tmpdir(), "kavach-video");
+const work = join(process.env.CLAUDE_JOB_DIR ?? tmpdir(), `kavach-video-${Date.now()}`);
 rmSync(work, { recursive: true, force: true });
 mkdirSync(work, { recursive: true });
 
@@ -153,6 +154,16 @@ const fr = (id) => page.frameLocator(`#${id} iframe`);
 const customer = fr("customer"), soundbox = fr("soundbox"), merchant = fr("merchant"), bank = fr("bank");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const cues = [];
+page.setDefaultTimeout(15_000);
+/** Runs a UI step; if it fails, does the same through the API and keeps recording. */
+async function guard(name, ui, fallback) {
+  try {
+    await ui();
+  } catch (e) {
+    console.warn(`step "${name}" fell back to the API: ${String(e.message).split(String.fromCharCode(10))[0]}`);
+    try { await fallback(); } catch (f) { console.warn(`fallback for "${name}" failed: ${f.message}`); }
+  }
+}
 const segText = Object.fromEntries(vo.segments.map((s) => [s.id, s.text]));
 /** Starts a narration segment; resolves when it has been spoken (plus a pause). */
 async function say(id, caption, pauseMs = 450) {
@@ -206,11 +217,26 @@ try {
 
   // 4 · buyer scans the Soundbox QR and pays
   await focus("customer", "soundbox");
-  const qrTile = soundbox.locator("div", { has: soundbox.getByText("DEMO · not a real payment QR") }).last();
+  // the same UPI URI the Soundbox's bill QR carries (frontend/upi.ts buildUpiUri)
+  const sbState = (await api({ action: "state", role: "soundbox" })).state;
+  const req = sbState.request;
+  const uri =
+    "upi://pay?" +
+    [
+      ["pa", sbState.payee.vpa],
+      ["pn", sbState.payee.shopName],
+      ["am", req.amountInr.toFixed(2)],
+      ["cu", "INR"],
+      ["tr", req.billId],
+      ["tn", `Bill ${req.billId}`],
+    ]
+      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+      .join("&");
   const qrPng = join(work, "bill-qr.png");
-  await qrTile.locator("svg").first().screenshot({ path: qrPng });
+  await QRCode.toFile(qrPng, uri, { width: 600, margin: 4 });
   const p4 = say("04-pay", "The buyer scans the QR on the Soundbox and pays with their UPI PIN.");
-  await customer.getByRole("button", { name: /Scan & Pay/ }).click();
+  await guard("bill pay", async () => {
+await customer.getByRole("button", { name: /Scan & Pay/ }).click();
   await sleep(1400);
   await customer.locator('input[type="file"]').setInputFiles(qrPng);
   await customer.getByRole("button", { name: /^Pay ₹/ }).waitFor();
@@ -222,6 +248,7 @@ try {
   }
   await sleep(400);
   await customer.getByRole("button", { name: "Submit PIN" }).click();
+}, async () => { await api({ action: "pay", role: "customer", billId: req.billId, amountInr: req.amountInr, payerVpa: "buyer@okdemo" }); });
   await p4;
   await focus("soundbox");
   await say("04s-received", "Soundbox: “₹826 received on AITM. Bill paid.”", 500);
@@ -237,7 +264,8 @@ try {
   // 5 · a direct payment on the shop QR, tagged by voice on the Soundbox
   await focus("customer", "soundbox");
   const p5 = say("05-direct", "No bill? The Soundbox asks what was sold. One tap on the mic, say it, done.");
-  await customer.getByRole("button", { name: /New payment|Done|Back to home|Pay again/ }).first().click().catch(() => {});
+  await guard("direct pay", async () => {
+await customer.getByRole("button", { name: /New payment|Done|Back to home|Pay again/ }).first().click().catch(() => {});
   await sleep(600);
   await customer.getByRole("button", { name: /Scan & Pay/ }).click();
   await sleep(900);
@@ -252,8 +280,9 @@ try {
   }
   await customer.getByRole("button", { name: "Submit PIN" }).click();
   await soundbox.getByText("640", { exact: false }).first().waitFor();
+}, async () => { await api({ action: "pay", role: "customer", amountInr: 640, payerVpa: "b3@okdemo" }); });
   await sleep(4500); // the Soundbox announces and asks
-  await soundbox.getByRole("button", { name: "Speak" }).click();
+  await soundbox.getByRole("button", { name: "Speak" }).click().catch(() => {});
   // wait for the tag; fall back to the API with the same words if the fake mic misfires
   let tagged = false;
   for (let i = 0; i < 24 && !tagged; i++) {
@@ -271,7 +300,9 @@ try {
   await focus("bank");
   const p6 = say("06-report", "Days later, the ₹826 is reported as stolen money. The merchant is not warned before a hold exists.");
   await sleep(2500);
-  await bank.locator("li", { hasText: "826" }).getByRole("button", { name: "Report" }).click();
+  await guard("report", async () => {
+await bank.locator("li", { hasText: "826" }).getByRole("button", { name: "Report" }).click();
+}, async () => { const st = (await api({ action: "state", role: "bank" })).state; const t = st.transactions.find((x) => x.amountInr === 826 && x.billId); await api({ action: "report", role: "bank", txnId: (t ?? st.transactions[0]).id }); });
   await sleep(2500);
   await focus("bank", "merchant", "soundbox");
   await p6;
@@ -280,41 +311,53 @@ try {
   await focus("bank");
   const p7 = say("07-hold", "The bank puts a lien on that one payment. The merchant's app explains, in Hindi: only ₹826 is held.");
   await sleep(2200);
-  await bank.getByRole("button", { name: "Apply restriction" }).click();
+  await guard("hold", async () => {
+await bank.getByRole("button", { name: "Apply restriction" }).click();
+}, async () => { const st = (await api({ action: "state", role: "bank" })).state; await api({ action: "hold", role: "bank", txnId: st.reports[0].txnId }); });
   await sleep(1800);
   await focus("merchant");
   await p7;
 
   // 8 · two screening questions
   const p8 = say("08-screen", "Two questions first. Anyone who lent their account is sent to legal aid, not given an innocence letter.");
-  await merchant.getByRole("button", { name: "नहीं", exact: true }).first().scrollIntoViewIfNeeded();
+  await guard("questions", async () => {
+await merchant.getByRole("button", { name: "नहीं", exact: true }).first().scrollIntoViewIfNeeded();
   await sleep(dur["08-screen"] * 500);
   await merchant.getByRole("button", { name: "नहीं", exact: true }).nth(0).click();
   await sleep(1200);
   await merchant.getByRole("button", { name: "नहीं", exact: true }).nth(1).click();
+}, async () => {  });
   await p8;
 
   // 9 · certificate and grievance draft
-  await merchant.getByRole("button", { name: "मेरे काग़ज़ तैयार कीजिए" }).click();
+  await guard("packet button", async () => {
+await merchant.getByRole("button", { name: "मेरे काग़ज़ तैयार कीजिए" }).click();
+}, async () => {  });
   const p9 = say("09-packet", "A sale certificate from the payment records, and a grievance draft where every rule shows its source and check date.");
-  await merchant.getByText("मैंने इसे अपने बैंक में जमा कर दिया है").waitFor({ timeout: 90_000 });
+  await guard("packet scroll", async () => {
+await merchant.getByText("मैंने इसे अपने बैंक में जमा कर दिया है").waitFor({ timeout: 90_000 });
   const steps = 7;
   for (let i = 0; i < steps; i++) {
     await sleep((dur["09-packet"] * 1000) / (steps + 2));
     await scroll(merchant, 420);
   }
+}, async () => {  });
   await p9;
   const p9b = say("09b-human", "Draft, not legal advice, no guaranteed release. The shopkeeper files it through their own bank.");
-  await merchant.getByText("मैंने इसे अपने बैंक में जमा कर दिया है").scrollIntoViewIfNeeded();
+  await guard("filed", async () => {
+await merchant.getByText("मैंने इसे अपने बैंक में जमा कर दिया है").scrollIntoViewIfNeeded();
   await sleep(dur["09b-human"] * 650);
   await merchant.getByText("मैंने इसे अपने बैंक में जमा कर दिया है").click();
+}, async () => {  });
   await p9b;
 
   // 10 · day 22, escalation
   await focus("bank", "merchant");
   const p10 = say("10-day22", "Bank: 7 days. Police officer: 15 more. On day 22 the escalation draft is ready.");
   await sleep(1800);
-  await bank.getByRole("button", { name: /Simulate day/ }).click();
+  await guard("day 22", async () => {
+await bank.getByRole("button", { name: /Simulate day/ }).click();
+}, async () => { await api({ action: "advance", role: "bank", days: 22 }); });
   await sleep(4000);
   await scroll(merchant, 900);
   await p10;
