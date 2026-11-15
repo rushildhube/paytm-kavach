@@ -48,7 +48,7 @@ Each folder has its own `CLAUDE.md` describing what belongs there.
 - **Voice and LLM:** Sarvam for both. The browser only records audio; Sarvam does speech to text, text to speech and the drafting (`sarvam-105b`), all called from server routes so the one `SARVAM_API_KEY` never reaches the browser.
 - **Build order:** the end-to-end ₹826 demo path first, thin but complete.
 - **Live demo on four screens** (branch `feat/multi-screen-demo`, issue #4, design in `docs/multi-screen-demo.md`): `/customer` pays, `/soundbox` announces and records the tag, `/merchant` handles the hold, `/bank` reports, restricts and jumps the clock. `/` stays as the single-screen fallback. The screens recreate the problem; the solution is the Soundbox tag and the merchant's hold flow.
-- **Demo brand (2026-11-15):** the UI uses **Saakshi** (साक्षी, "witness"), a fictional payments brand with an original logo, defined only in `frontend/brand.ts`. No Paytm logo or name appears in the UI; Paytm stays the company we pitch to in `docs/`. To rename, edit `brand.ts` only.
+- **Demo brand (2026-11-15, renamed from Saakshi the same day):** the UI uses **AITM** ("AI Transfer Money"), a fictional payments brand with an original logo, defined only in `frontend/brand.ts`. No Paytm logo or name appears in the UI; Paytm stays the company we pitch to in `docs/`. To rename, edit `brand.ts` only.
 - **Each screen sees only what its actor would see.** Screens call `/api/kavach` with a `role`; `snapshotFor(role)` in `backend/api.ts` decides the data. A fraud report reaches only the bank screen until a hold exists (no tipping off). Keep it that way when adding fields.
 
 ## Working together

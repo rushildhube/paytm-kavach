@@ -12,7 +12,7 @@
 export const MAX_UPI_AMOUNT_INR = 100_000;
 
 export type UpiPayment = {
-  /** Payee VPA, e.g. sharmakirana@demosaakshi */
+  /** Payee VPA, e.g. sharmakirana@demoaitm */
   pa: string;
   /** Payee name shown by the paying app */
   pn: string;

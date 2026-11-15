@@ -14,7 +14,7 @@ Mock data standing in for Paytm's own records. In the real product these would b
 - `seed.ts` (imports types from `backend/types.ts`):
   - `merchants` — `m_kirana` (Sharma Kirana Store, the demo merchant, 0 reports), `m_reported` (4 earlier reports, must never get a certificate), `m_mule` (clean record, for exercising the mule-screen answers).
   - `DEMO_MERCHANT_ID` — `m_kirana`.
-  - `DEMO_PAYEE_VPA` — `sharmakirana@` + `BRAND.vpaDomain` (`demosaakshi`), the shop's synthetic UPI handle used in every QR. `DEMO_PAYER_VPA` — synthetic buyer handle, masked before storage.
+  - `DEMO_PAYEE_VPA` — `sharmakirana@` + `BRAND.vpaDomain` (`demoaitm`), the shop's synthetic UPI handle used in every QR. `DEMO_PAYER_VPA` — synthetic buyer handle, masked before storage.
   - `DEMO_PAYMENT` — `{ amountInr: 826, payerVpaMasked: "vi***@okdemo", spokenTag: "दो किलो चीनी, एक तेल" }`. Used by the `pay` action and the "Use recorded clip" button. The ₹826 payment is created live in the demo, not seeded.
   - `seedTransactions(base)` — three earlier sales relative to reset time: `TXN1001` ₹1,240 (settled, tagged), `TXN1002` ₹40 (below threshold, untagged), `TXN1003` ₹560 (unsettled, tagged).
 

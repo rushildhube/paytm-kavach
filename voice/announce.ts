@@ -2,7 +2,7 @@ import { BRAND } from "@frontend/brand";
 import { DEFAULT_VOICE_LANGUAGE, type VoiceLanguage } from "./languages";
 
 /**
- * What the Soundbox says, per language. The brand phrase ("on Saakshi")
+ * What the Soundbox says, per language. The brand phrase ("on AITM")
  * comes from frontend/brand.ts. Modelled on the Paytm Soundbox
  * announcement ("Paytm par ₹826 prapt hue"); the exact wording of the real
  * device was not confirmed from a primary source. Non-Hindi phrases were
