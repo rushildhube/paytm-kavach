@@ -23,6 +23,8 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci
+      # Route types (LayoutProps, PageProps) live in .next/types, which a fresh checkout lacks.
+      - run: npx next typegen
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
