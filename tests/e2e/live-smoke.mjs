@@ -82,7 +82,13 @@ try {
   const open = async (ctx, p) => {
     const page = await ctx.newPage();
     page.on("pageerror", (e) => errors.push(`${p}: ${e.message}`));
-    page.on("console", (m) => m.type() === "error" && errors.push(`${p}: ${m.text().slice(0, 160)}`));
+    // Name the failing request: "Failed to load resource: 400" alone says nothing.
+    page.on("response", (r) => {
+      if (r.status() < 400) return;
+      const action = (() => { try { return JSON.parse(r.request().postData() ?? "{}").action; } catch { return undefined; } })();
+      errors.push(`${p}: ${r.status()} ${r.url().replace(U, "")}${action ? ` (${action})` : ""}`);
+    });
+    page.on("console", (m) => m.type() === "error" && !m.text().startsWith("Failed to load resource") && errors.push(`${p}: ${m.text().slice(0, 160)}`));
     await page.goto(U + p, { waitUntil: "load" });
     await page.waitForTimeout(2000);
     return page;
@@ -177,6 +183,13 @@ try {
   const [esc, escMs] = await timed(() => api({ action: "escalation", holdId: hold.id }));
   check("day-22 escalation draft", JSON.stringify(esc.result).length > 200, `${escMs} ms`);
 
+  // Close the screens before resetting under them: an open screen's request for the old hold would get
+  // a 400 after the reset (the app drops such replies, but the browser still logs them).
+  await merchant.waitForTimeout(3000);
+  check("no page errors on the four screens", errors.length === 0, errors.slice(0, 5).join(" | "));
+  await browser.close();
+  browser = undefined;
+
   // Mule screen on a fresh hold: "someone else used my account" → legal aid, never a certificate.
   await api({ action: "reset" });
   const mp = (await api({ action: "pay", amountInr: 900, payerVpa: "ravi@okdemo", role: "customer" })).result.txn;
@@ -188,7 +201,6 @@ try {
   await api({ action: "reset" });
   const after = (await api({ action: "state" })).state;
   check("reset returns to the seed", after.transactions.length === 3 && !after.hold);
-  check("no page errors on the four screens", errors.length === 0, errors.slice(0, 5).join(" | "));
 } catch (e) {
   // A crash midway (a refused action, a dropped connection after retries) is a failed run, not a lost one.
   check("run finished without crashing", false, e.stack?.split("\n").slice(0, 3).join(" | ") ?? String(e));
