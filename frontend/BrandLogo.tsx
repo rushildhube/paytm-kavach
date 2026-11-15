@@ -2,7 +2,7 @@ import { BRAND } from "./brand";
 
 /**
  * The demo brand's logo, drawn inline: a shield (Kavach) holding an eye
- * (Saakshi, the witness) with a saffron pupil, beside a one-colour wordmark.
+ * (AI that watches every transfer) with a saffron pupil, beside a one-colour wordmark.
  * Original artwork; the name and colours come from brand.ts.
  *
  * - "full": mark and wordmark, for light backgrounds
