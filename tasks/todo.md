@@ -1,3 +1,16 @@
+# Plan: fix the code review findings (branch `fix/review-guardrails`, issue #12)
+
+Branched from `feat/multi-screen-demo` (`a4d4032`) at the teammate's request, so `backend/api.ts` and `backend/holds.ts` do not conflict. Item 9 (stuck tag prompt) is already fixed there by `frontend/useLive.ts`.
+
+- [x] 1. Ownership: every action on a payment or hold checks it belongs to the active merchant; eligibility and the letters use the payment's merchant; `snapshot().hold` / `bankSnapshot().hold` show only the active merchant's hold
+- [x] 2. Screening is kept per hold: the first result stands; `filed` and `escalation` refuse unless the hold was screened `eligible`
+- [x] 3. Validate every `/api/kavach` body with zod (answers are two booleans, `days` 1–365, `source` enum, transcript ≤ 500 chars, amount bounded, ids bounded)
+- [x] 4. `checkDraft`: plurals, Sec./u/s/Article/अनुच्छेद, act names, versus, "will be returned", वापस मिल जाएगा, Devanagari digits in amounts, markers limited to the rules given to the model
+- [x] 5. Parser: Devanagari decimals; "2kg" splits into quantity and unit
+- [x] 6. Watcher: compare IST calendar dates; guard bad code points; only http(s) links
+- [x] 7. Sarvam proxies: cap STT upload size and TTS text length; simple per-IP rate limit
+- [x] 8. Tests for each; typecheck, lint, build; comment on #12; open PR into `feat/multi-screen-demo`
+
 # Plan: verify the rules table and watch for law changes (branch `verify/rules`)
 
 Goal: every entry in `rules/rules.json` checked against its primary source, and a feed watcher that flags rules whose law may have changed.

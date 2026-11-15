@@ -17,15 +17,17 @@ import {
   TAG_WINDOW_SECONDS,
 } from "./config";
 import {
-  checkEligibility,
   getGrievance,
   getHold,
   markFiled,
+  merchantOfHold,
   placeHold,
   reportFraud,
+  requireEligible,
+  screenHold,
   trackerStatus,
 } from "./holds";
-import { getSaleTag, LedgerError, needsTag, recordPayment, recordSaleTag } from "./ledger";
+import { getSaleTag, getTransaction, LedgerError, needsTag, recordPayment, recordSaleTag } from "./ledger";
 import { escalationTarget, ladder } from "./rules";
 import { checkFeeds, clearDemoAlerts, ensureWatcher, injectDemoItem, watchStatus } from "./watcher";
 import {
@@ -36,11 +38,20 @@ import {
   setActiveMerchant,
   store,
 } from "./store";
-import type { Eligibility, HoldScope, MuleScreenAnswers, SaleTag } from "./types";
+import type { Eligibility, Hold } from "./types";
+import { z } from "zod";
 
 /** Which screen is asking. Each one sees only what that actor would see. */
-export type Role = "merchant" | "soundbox" | "customer" | "bank";
-const ROLES: Role[] = ["merchant", "soundbox", "customer", "bank"];
+export type Role = (typeof ROLES)[number];
+const ROLES = ["merchant", "soundbox", "customer", "bank"] as const;
+
+/** The newest hold on one of the active merchant's payments, never another merchant's. */
+function activeHold(): Hold | null {
+  const s = store();
+  const merchantId = activeMerchant().id;
+  const own = new Set(s.transactions.filter((t) => t.merchantId === merchantId).map((t) => t.id));
+  return s.holds.findLast((h) => own.has(h.txnId)) ?? null;
+}
 
 function merchantTransactions() {
   const s = store();
@@ -73,7 +84,7 @@ function merchantTransactions() {
 export function snapshot() {
   const s = store();
   const merchant = activeMerchant();
-  const hold = s.holds.at(-1) ?? null;
+  const hold = activeHold();
   return {
     epoch: s.epoch,
     now: now().toISOString(),
@@ -135,7 +146,7 @@ export function customerSnapshot() {
 export function bankSnapshot() {
   const s = store();
   const merchant = activeMerchant();
-  const hold = s.holds.at(-1) ?? null;
+  const hold = activeHold();
   return {
     epoch: s.epoch,
     now: now().toISOString(),
@@ -188,7 +199,7 @@ export type Packet =
 function factsFor(holdId: string): DraftFacts {
   return {
     certificate: buildCertificate(holdId, now()),
-    ownerName: activeMerchant().ownerName,
+    ownerName: merchantOfHold(holdId).ownerName,
   };
 }
 
@@ -199,30 +210,81 @@ function spokenAmounts(transcript: string): number[] {
 
 const VPA = /^[\w.-]{2,64}@[\w.-]{2,32}$/;
 
-type Action = { role?: Role } & (
-  | { action: "state" }
-  | { action: "reset" }
-  | { action: "merchant"; merchantId: string }
-  | { action: "pay"; amountInr?: number; payerVpa?: string; billId?: string }
-  | { action: "tag"; txnId: string; transcript: string; source?: SaleTag["source"] }
-  | { action: "tag-auto"; transcript: string; source?: SaleTag["source"] }
-  | { action: "settings"; language: string }
-  | { action: "bill-create"; amountInr: number; text?: string }
-  | { action: "bill-cancel"; billId: string }
-  | { action: "bill-lookup"; billId: string }
-  | { action: "report"; txnId: string }
-  | { action: "hold"; txnId: string; scope?: HoldScope }
-  | { action: "explain"; holdId: string }
-  | { action: "packet"; holdId: string; answers: MuleScreenAnswers }
-  | { action: "filed"; holdId: string }
-  | { action: "advance"; days: number }
-  | { action: "escalation"; holdId: string }
-  | { action: "check-feeds" }
-  | { action: "simulate-law-change" }
-);
+/** Longest spoken tag kept. A sale is one short utterance. */
+export const MAX_TRANSCRIPT_CHARS = 500;
+/** Highest single payment the demo accepts. */
+export const MAX_PAYMENT_INR = 500_000;
+
+const id = z.string().min(1).max(64);
+const act = <A extends string, S extends z.ZodRawShape>(action: A, shape: S) =>
+  z.object({ action: z.literal(action), role: z.enum(ROLES).optional(), ...shape });
+
+/** Every request body is checked here; anything else is refused with a 400. */
+const ActionSchema = z.discriminatedUnion("action", [
+  act("state", {}),
+  act("reset", {}),
+  act("merchant", { merchantId: id }),
+  act("pay", {
+    amountInr: z.number().positive().max(MAX_PAYMENT_INR).optional(),
+    payerVpa: z.string().max(100).optional(),
+    billId: id.optional(),
+  }),
+  act("tag", {
+    txnId: id,
+    transcript: z.string().trim().min(1).max(MAX_TRANSCRIPT_CHARS),
+    source: z.enum(["voice", "recorded_clip"]).optional(),
+  }),
+  act("tag-auto", {
+    transcript: z.string().trim().min(1).max(MAX_TRANSCRIPT_CHARS),
+    source: z.enum(["voice", "recorded_clip"]).optional(),
+  }),
+  act("settings", { language: z.string().max(10) }),
+  act("bill-create", {
+    amountInr: z.number().positive().max(MAX_PAYMENT_INR),
+    text: z.string().max(300).optional(),
+  }),
+  act("bill-cancel", { billId: id }),
+  act("bill-lookup", { billId: id }),
+  act("report", { txnId: id }),
+  act("hold", { txnId: id, scope: z.enum(["lien", "debit_freeze"]).optional() }),
+  act("explain", { holdId: id }),
+  act("packet", {
+    holdId: id,
+    answers: z.object({ lentAccount: z.boolean(), receivedForCommission: z.boolean() }),
+  }),
+  act("filed", { holdId: id }),
+  act("advance", { days: z.number().int().min(1).max(365) }),
+  act("escalation", { holdId: id }),
+  act("check-feeds", {}),
+  act("simulate-law-change", {}),
+]);
+
+export type Action = z.infer<typeof ActionSchema>;
+
+function parseAction(input: unknown): Action {
+  const parsed = ActionSchema.safeParse(input);
+  if (parsed.success) return parsed.data;
+  const issue = parsed.error.issues[0];
+  const where = issue?.path.length ? `${issue.path.join(".")}: ` : "";
+  throw new Error(`invalid request: ${where}${issue?.message ?? "bad body"}`);
+}
+
+/** A payment the screen acts on must belong to the merchant whose screen it is. */
+function ownTransaction(txnId: string): void {
+  if (getTransaction(txnId).merchantId !== activeMerchant().id) {
+    throw new Error("this payment belongs to another merchant");
+  }
+}
+
+function ownHold(holdId: string): Hold {
+  const hold = getHold(holdId);
+  ownTransaction(hold.txnId);
+  return hold;
+}
 
 /** Single entry point used by the API route. Returns fresh state for the asking screen. */
-export async function handle(input: Action) {
+export async function handle(raw: unknown) {
+  const input = parseAction(raw);
   ensureWatcher();
   let result: unknown = null;
 
@@ -268,7 +330,7 @@ export async function handle(input: Action) {
               transcript: bill.text,
               items: bill.items,
               source: "bill",
-              binding: "bill",
+              boundBy: "bill",
               billId: bill.id,
             })
           : null;
@@ -280,39 +342,48 @@ export async function handle(input: Action) {
       break;
     }
     case "tag":
+      ownTransaction(input.txnId);
       result = recordSaleTag({
         txnId: input.txnId,
         transcript: input.transcript,
         items: parseSaleItems(input.transcript),
         source: input.source ?? "voice",
-        binding: "tap",
+        boundBy: "tap",
       });
       break;
     case "tag-auto": {
-      // Static-QR queue (#15): bind only when it is unambiguous. Never guess.
+      // Static-QR queue (#15, #19): bind only when unambiguous. Never guess.
+      // Interim version; feat/tag-matching (#19) adds spoken-number words and the name tiebreak.
       const open = merchantTransactions().filter((t) => t.canTag);
-      if (open.length === 0) throw new LedgerError("no payment is waiting for a tag");
+      if (open.length === 0) {
+        result = { outcome: "none_open" };
+        break;
+      }
       let target = open.length === 1 ? open[0] : undefined;
-      let binding: "single" | "amount" = "single";
+      let method: "only_open" | "amount" = "only_open";
       if (!target) {
         const spoken = spokenAmounts(input.transcript);
         const hits = open.filter((t) => spoken.includes(t.amountInr));
         if (hits.length === 1) {
           target = hits[0];
-          binding = "amount";
+          method = "amount";
         }
       }
       if (!target) {
-        result = { needsChoice: true, open: open.map((t) => ({ id: t.id, amountInr: t.amountInr })) };
+        result = {
+          outcome: "ambiguous",
+          candidates: open.map((t) => ({ id: t.id, amountInr: t.amountInr, at: t.at, secondsLeft: t.secondsLeft })),
+        };
         break;
       }
-      result = recordSaleTag({
+      recordSaleTag({
         txnId: target.id,
         transcript: input.transcript,
         items: parseSaleItems(input.transcript),
         source: input.source ?? "voice",
-        binding,
+        boundBy: method,
       });
+      result = { outcome: "bound", txnId: target.id, method };
       break;
     }
     case "settings":
@@ -321,7 +392,7 @@ export async function handle(input: Action) {
       result = { language: input.language };
       break;
     case "bill-create":
-      result = createBill(Number(input.amountInr), String(input.text ?? ""));
+      result = createBill(input.amountInr, input.text ?? "");
       break;
     case "bill-cancel":
       result = cancelBill(input.billId);
@@ -338,23 +409,21 @@ export async function handle(input: Action) {
       break;
     }
     case "report":
+      ownTransaction(input.txnId);
       result = reportFraud(input.txnId);
       break;
     case "hold":
-      result = placeHold(
-        input.txnId,
-        "police",
-        input.scope === "debit_freeze" ? "debit_freeze" : "lien",
-      );
+      ownTransaction(input.txnId);
+      result = placeHold(input.txnId, "police", input.scope ?? "lien");
       break;
     case "explain": {
-      const hold = getHold(input.holdId);
+      const hold = ownHold(input.holdId);
       result = await makeDraft("explanation", factsFor(hold.id), hold.type);
       break;
     }
     case "packet": {
-      const hold = getHold(input.holdId);
-      const eligibility = checkEligibility(activeMerchant(), input.answers);
+      const hold = ownHold(input.holdId);
+      const eligibility = screenHold(hold.id, input.answers);
       if (eligibility.outcome !== "eligible") {
         const packet: Packet = {
           eligibility,
@@ -376,13 +445,15 @@ export async function handle(input: Action) {
       break;
     }
     case "filed":
+      ownHold(input.holdId);
       result = markFiled(input.holdId);
       break;
     case "advance":
       advanceClock(input.days);
       break;
     case "escalation": {
-      const hold = getHold(input.holdId);
+      const hold = ownHold(input.holdId);
+      requireEligible(hold.id);
       const grievance = getGrievance(hold.id);
       const status = trackerStatus(hold.id);
       if (!grievance || status.stage !== "escalation_due") {
@@ -405,6 +476,5 @@ export async function handle(input: Action) {
       throw new Error("unknown action");
   }
 
-  const role = ROLES.includes(input.role as Role) ? (input.role as Role) : "merchant";
-  return { result, state: snapshotFor(role) };
+  return { result, state: snapshotFor(input.role ?? "merchant") };
 }

@@ -52,7 +52,7 @@ export function recordSaleTag(input: {
   transcript: string;
   items: SaleItem[];
   source: SaleTag["source"];
-  binding?: SaleTag["binding"];
+  boundBy?: SaleTag["boundBy"];
   billId?: string;
 }): SaleTag {
   const txn = getTransaction(input.txnId);
@@ -77,7 +77,7 @@ export function recordSaleTag(input: {
     transcript,
     items: input.items,
     source: input.source,
-    ...(input.binding ? { binding: input.binding } : {}),
+    ...(input.boundBy ? { boundBy: input.boundBy } : {}),
     ...(input.billId ? { billId: input.billId } : {}),
   });
   store().saleTags.push(tag);

@@ -1,7 +1,7 @@
 import { REPEAT_REPORT_LIMIT } from "./config";
 import { getTransaction } from "./ledger";
 import { escalateAfterDays, ladderStepOn } from "./rules";
-import { now, store } from "./store";
+import { getMerchant, now, store } from "./store";
 import type {
   Eligibility,
   FraudReport,
@@ -11,6 +11,7 @@ import type {
   HoldType,
   Merchant,
   MuleScreenAnswers,
+  Screening,
   TrackerStatus,
 } from "./types";
 
@@ -98,9 +99,40 @@ export function checkEligibility(
   return { outcome: "eligible" };
 }
 
+/** The merchant whose payment is held: always taken from the payment, never from the screen. */
+export function merchantOfHold(holdId: string): Merchant {
+  return getMerchant(getTransaction(getHold(holdId).txnId).merchantId);
+}
+
+/**
+ * Run the mule screen for a hold, once. The first result stands: answering
+ * again with different answers cannot turn a legal-aid referral into a letter.
+ */
+export function screenHold(holdId: string, answers: MuleScreenAnswers): Eligibility {
+  const s = store();
+  const existing = s.screenings.find((x) => x.holdId === holdId);
+  if (existing) return existing.eligibility;
+  const eligibility = checkEligibility(merchantOfHold(holdId), answers);
+  s.screenings.push({ holdId, answers, eligibility, at: now().toISOString() });
+  return eligibility;
+}
+
+export function getScreening(holdId: string): Screening | undefined {
+  return store().screenings.find((x) => x.holdId === holdId);
+}
+
+/** Letters and the tracker are only for holds that passed the screen. */
+export function requireEligible(holdId: string): void {
+  const screening = getScreening(holdId);
+  if (!screening) throw new Error("answer the two screening questions first");
+  if (screening.eligibility.outcome !== "eligible") {
+    throw new Error("Kavach cannot prepare letters for this hold");
+  }
+}
+
 /** The merchant tells Kavach they have filed the grievance themselves. */
 export function markFiled(holdId: string): Grievance {
-  getHold(holdId);
+  requireEligible(holdId);
   const s = store();
   const existing = s.grievances.find((x) => x.holdId === holdId);
   if (existing) return existing;

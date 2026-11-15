@@ -60,7 +60,7 @@ export async function makeDraft(
 
   try {
     const raw = await chat(SYSTEM_PROMPT, buildUserPrompt(kind, facts, rules, template));
-    const check = checkDraft(raw, amounts);
+    const check = checkDraft(raw, amounts, rules.map((r) => r.id));
     if (!check.ok) {
       return finish(template, "template", `model draft rejected: ${check.problems.join("; ")}`);
     }

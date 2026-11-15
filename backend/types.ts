@@ -64,13 +64,13 @@ export type SaleTag = {
   source: "voice" | "recorded_clip" | "bill";
   /**
    * How the tag was tied to its payment, shown on the certificate so a reader
-   * can judge its weight (docs/problem.md):
+   * can judge its weight (docs/problem.md, issue #19):
    * - "bill": the payment was made against a bill created before it
-   * - "tap": the merchant picked the payment card
-   * - "amount": the spoken amount matched exactly one open payment
-   * - "single": only one payment was open
+   * - "tap": the merchant picked the payment
+   * - "only_open": only one payment was waiting for a tag
+   * - "amount" / "amount_and_name": the spoken amount (and name) matched exactly one open payment
    */
-  binding?: "bill" | "tap" | "amount" | "single";
+  boundBy?: "bill" | "tap" | "only_open" | "amount" | "amount_and_name";
   billId?: string;
 };
 
@@ -125,6 +125,17 @@ export type Eligibility =
   | { outcome: "eligible" }
   | { outcome: "legal_aid"; reason: string }
   | { outcome: "no_certificate"; reason: string };
+
+/**
+ * The mule-screen result for one hold. Written once; later answers cannot
+ * change it. Kept apart from the hold so the bank console never sees it.
+ */
+export type Screening = {
+  holdId: string;
+  answers: MuleScreenAnswers;
+  eligibility: Eligibility;
+  at: string;
+};
 
 export type TrackerStage = "not_filed" | "awaiting_reply" | "escalation_due";
 

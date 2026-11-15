@@ -53,7 +53,8 @@ export function buildUserPrompt(
     status: r.status,
     summary: r.summary,
     ...(flagged[r.id] && {
-      under_review: `Official news since this rule was last checked may change it: "${flagged[r.id][0].title}"`,
+      // Fixed wording: feed titles are outside text and never go into the prompt.
+      under_review: "Official news since this rule was last checked may change it.",
     }),
   }));
   return `<task>
