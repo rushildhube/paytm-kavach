@@ -8,6 +8,7 @@ import { announcePayment, announceRequest, phrasesFor, statusFor } from "@voice/
 import { DEFAULT_VOICE_LANGUAGE, isVoiceLanguage, VOICE_LANGUAGES, type VoiceLanguage } from "@voice/languages";
 import { useRecorder } from "@voice/useRecorder";
 import { inr, when } from "./parts";
+import { ProofChip } from "./ProofChip";
 import { QrCode } from "./QrCode";
 import { buildUpiUri } from "./upi";
 import { enqueue, onSpeaking, pauseSpeech, prefetch, resumeSpeech, stopSpeaking, unlockAudio } from "./speech";
@@ -512,7 +513,10 @@ export default function SoundboxApp() {
               <ul className="divide-y divide-slate-200 overflow-hidden rounded-2xl bg-white/80 shadow-sm">
                 {done.map((p) => (
                   <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                    <span className="font-semibold text-slate-900">{inr(p.amountInr)}</span>
+                    <span className="flex shrink-0 flex-col items-start gap-0.5">
+                      <span className="font-semibold text-slate-900">{inr(p.amountInr)}</span>
+                      {p.needsTag && <ProofChip level={p.strength} english />}
+                    </span>
                     <span className="truncate text-right text-slate-600">
                       {p.transcript
                         ? `${p.billId ? `${p.billId} · ` : "🛡 "}${p.transcript}`

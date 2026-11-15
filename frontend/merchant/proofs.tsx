@@ -5,6 +5,7 @@ import type { Snapshot } from "@backend/api";
 import { BRAND } from "../brand";
 import { inr, when } from "../parts";
 import { BoundByChip, Card, NAVY } from "./chrome";
+import { PROOF_LABEL, ProofChip } from "../ProofChip";
 
 type Txn = Snapshot["transactions"][number];
 
@@ -19,7 +20,6 @@ function secondsAfter(t: Txn): number | null {
 type Status = { label: string; cls: string };
 
 function statusOf(t: Txn, thresholdInr: number): Status {
-  if (t.tag || t.invoice) return { label: "Proof recorded", cls: "bg-emerald-50 text-emerald-800 border-emerald-200" };
   if (t.canTag || t.canAttachInvoice) return { label: "Recording window open", cls: "bg-amber-50 text-amber-800 border-amber-200" };
   if (t.amountInr < thresholdInr) return { label: `Below ₹${thresholdInr}: not asked`, cls: "bg-slate-100 text-slate-600 border-slate-200" };
   return { label: "No proof recorded", cls: "bg-slate-100 text-slate-600 border-slate-200" };
@@ -33,6 +33,7 @@ function proofText(t: Txn, shop: string, accountLast4: string): string {
     `Shop: ${shop} · account •••• ${accountLast4}`,
     `Payment: ${t.id} · ₹${t.amountInr} · ${new Date(t.at).toLocaleString("en-IN")}`,
     `Payer (masked): ${t.payerVpaMasked}`,
+    `Proof strength: ${PROOF_LABEL[t.strength.level].en} (${t.strength.reasons.join(" ")})`,
     `Settlement: ${t.settlement.status === "settled" ? `settled · UTR ${t.settlement.utr}` : "pending"}`,
   ];
   if (t.billId) lines.push(`Bill: ${t.billId} (created before the payment)`);
@@ -100,9 +101,13 @@ function ProofCard({
           </div>
           {t.tag && <div className="mt-1 truncate text-sm text-slate-700">“{t.tag.transcript}”</div>}
         </div>
-        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${status.cls}`}>
-          {status.label}
-        </span>
+        {t.tag || t.invoice || !(t.canTag || t.canAttachInvoice) ? (
+          <ProofChip level={t.strength.level} english />
+        ) : (
+          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${status.cls}`}>
+            {status.label}
+          </span>
+        )}
       </button>
 
       {open && (
@@ -118,6 +123,21 @@ function ProofCard({
           />
           {t.settlement.status === "settled" && <Field k="UTR" v={t.settlement.utr} mono />}
           {t.billId && <Field k="Bill ID" v={t.billId} mono />}
+
+          <div className="mt-3 rounded-lg border border-slate-200 p-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Proof strength</span>
+              <ProofChip level={t.strength.level} />
+            </div>
+            <ul className="mt-1 list-disc pl-4 text-[12px] text-slate-600">
+              {t.strength.reasons.map((r) => (
+                <li key={r}>{r}</li>
+              ))}
+            </ul>
+            <p className="mt-1 text-[11px] text-slate-400">
+              Describes your records only. It does not mean a payment is safe from a hold.
+            </p>
+          </div>
 
           <h4 className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Recorded by you at payment time

@@ -23,6 +23,7 @@ import {
   soundboxRequest,
 } from "./bills";
 import { buildCertificate, type SaleCertificate } from "./certificate";
+import { proofStrength } from "./proofStrength";
 import {
   DISCLAIMER,
   DISCLAIMER_HI,
@@ -102,6 +103,8 @@ function merchantTransactions() {
         // Any amount: attaching a bill is the merchant's choice, not a prompt.
         canAttachInvoice: !invoice && !hold && secondsLeft > 0,
         secondsLeft,
+        // Shown on every payment, so it never hints at a report.
+        strength: proofStrength({ tag, invoice }),
       };
     })
     .sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
@@ -163,6 +166,7 @@ export function soundboxSnapshot() {
         canTag: t.canTag,
         secondsLeft: t.secondsLeft,
         needsTag: needsTag(t.amountInr),
+        strength: t.strength.level,
         billId: t.billId ?? null,
       })),
   };

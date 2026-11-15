@@ -2,6 +2,7 @@ import { DISCLAIMER } from "./config";
 import { getHold } from "./holds";
 import { getInvoice } from "./invoices";
 import { getSaleTag, getTransaction } from "./ledger";
+import { proofStrength, type ProofStrength } from "./proofStrength";
 import { getMerchant } from "./store";
 import type { Hold, SaleItem, SaleTag } from "./types";
 
@@ -43,6 +44,8 @@ export type SaleCertificate = {
     totalInr: number | null;
   } | null;
   hold: Pick<Hold, "reference" | "type" | "scope" | "heldAmountInr" | "placedAt">;
+  /** How much weight the recorded proof can carry, with reasons. A description, not a promise. */
+  strength: ProofStrength;
   provenance: string[];
   disclaimer: string;
 };
@@ -110,6 +113,7 @@ export function buildCertificate(holdId: string, generatedAt: Date): SaleCertifi
       heldAmountInr: hold.heldAmountInr,
       placedAt: hold.placedAt,
     },
+    strength: proofStrength({ tag, invoice }),
     provenance: [
       "Transaction and settlement fields come from the payment company's own records.",
       tag
