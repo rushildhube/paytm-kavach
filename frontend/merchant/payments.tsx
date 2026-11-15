@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Snapshot } from "@backend/api";
 import { inr, when } from "../parts";
 import { BoundByChip, Card, DEEP, NAVY, PRIMARY } from "./chrome";
+import { ProofChip } from "../ProofChip";
 
 type Txn = Snapshot["transactions"][number];
 
@@ -74,7 +75,8 @@ export function PaymentRow({
               <div className="inline-block rounded-lg bg-emerald-50 px-2 py-1 text-sm text-emerald-900">
                 🛡 {t.tag.transcript}
               </div>
-              <div>
+              <div className="flex flex-wrap gap-1.5">
+                <ProofChip level={t.strength.level} />
                 <BoundByChip boundBy={t.tag.boundBy} />
               </div>
             </div>

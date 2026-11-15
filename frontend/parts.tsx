@@ -3,6 +3,7 @@ import type { SaleCertificate } from "@backend/certificate";
 import type { Rule } from "@backend/rules";
 import type { RuleAlert } from "@backend/watcher";
 import { BRAND } from "./brand";
+import { ProofChip } from "./ProofChip";
 
 export const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
@@ -96,6 +97,20 @@ export function CertificateCard({ cert }: { cert: SaleCertificate }) {
       <div className="flex items-baseline justify-between">
         <h3 className="font-semibold text-slate-900">Sale certificate</h3>
         <span className="text-xs text-slate-500">{cert.certificateId}</span>
+      </div>
+      <div className="mt-2 rounded-lg border border-slate-200 p-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Proof strength</span>
+          <ProofChip level={cert.strength.level} />
+        </div>
+        <ul className="mt-1 list-disc pl-4 text-xs text-slate-600">
+          {cert.strength.reasons.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ul>
+        <p className="mt-1 text-[11px] text-slate-400">
+          A description of the records, not a finding. It does not mean the hold will be lifted.
+        </p>
       </div>
 
       <h4 className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-brand-navy">
