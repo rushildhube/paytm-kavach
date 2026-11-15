@@ -79,3 +79,19 @@ Built 2026-11-15. The ₹826 flow runs end to end.
 # Plan: multi-screen demo (customer, Soundbox, merchant, bank)
 
 In progress on branch `feat/multi-screen-demo`. Full design, research and checklist: `docs/multi-screen-demo.md`.
+
+---
+
+# Plan: attach an invoice instead of speaking (`/api/invoice`, issues #15, #19)
+
+Branch `feat/invoice` from `feat/multi-screen-demo` (ff80b3a).
+
+- [x] Migration 2: `invoices` table (one per payment; SHA-256, file kind, size, optional total; UPDATE/DELETE refused by trigger). No file bytes, no file name.
+- [x] `backend/invoices.ts` `recordInvoice`: own payment only; inside `TAG_WINDOW_SECONDS`; refused after a hold; one per payment; ≤ 2 MB; type read from magic bytes (PDF, JPEG, PNG, WebP), not the client's MIME; `totalInr`, if given, must equal the payment.
+- [x] `POST /api/invoice` (multipart `txnId`, `file`, `totalInr?`), thin route; 413 on size, 429 on rate limit, 400 otherwise.
+- [x] Merchant snapshot: `invoice` and `canAttachInvoice` per payment. Certificate: `invoice` block and a provenance line that says the contents are the merchant's, not verified.
+- [x] Tests, typecheck, lint; then PR into `feat/multi-screen-demo` and comment on #19.
+
+## Review
+
+Done 2026-11-15. 186 tests pass, typecheck and lint clean. Checked on `next dev`: pay, attach a PDF (200, `canAttachInvoice` false), second attach refused (400), database at `user_version` 2. A version-1 database file upgrades in a test. No UI yet: the merchant app has no attach button (needs a frontend owner, see #19).

@@ -114,5 +114,23 @@ export const MIGRATIONS: readonly string[] = [
     value TEXT NOT NULL
   );
   `,
+
+  // 2: invoices attached at payment time (issues #15, #19). Only a fingerprint
+  // of the file is kept, never its bytes or name (the file may show buyer
+  // details). One per payment, written once.
+  `
+  CREATE TABLE invoices (
+    txn_id      TEXT PRIMARY KEY REFERENCES transactions(id),
+    attached_at TEXT NOT NULL,
+    sha256      TEXT NOT NULL CHECK (length(sha256) = 64 AND sha256 NOT GLOB '*[^0-9a-f]*'),
+    kind        TEXT NOT NULL CHECK (kind IN ('pdf', 'jpeg', 'png', 'webp')),
+    size_bytes  INTEGER NOT NULL CHECK (size_bytes > 0 AND size_bytes <= 2097152),
+    total_inr   REAL CHECK (total_inr IS NULL OR total_inr > 0)
+  );
+  CREATE TRIGGER invoices_no_update BEFORE UPDATE ON invoices
+  BEGIN SELECT RAISE(ABORT, 'invoices are append-only'); END;
+  CREATE TRIGGER invoices_no_delete BEFORE DELETE ON invoices
+  BEGIN SELECT RAISE(ABORT, 'invoices are append-only'); END;
+  `,
 ];
 
