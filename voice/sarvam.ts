@@ -2,6 +2,16 @@
  * Sarvam speech and chat APIs, called from the server only so the key never
  * reaches the browser. Field names follow docs.sarvam.ai (checked 2026-11-15).
  */
+import { DEFAULT_VOICE_LANGUAGE, type VoiceLanguage } from "./languages";
+import {
+  ANNOUNCE_PACE,
+  speakerFor,
+  STT_MODEL,
+  TTS_CODEC,
+  TTS_MODEL,
+  type Speaker,
+} from "./voices";
+
 const BASE = "https://api.sarvam.ai";
 
 export class SarvamUnavailable extends Error {}
@@ -19,18 +29,32 @@ async function fail(res: Response): Promise<never> {
   throw new Error(`Sarvam ${res.status}: ${body.slice(0, 300)}`);
 }
 
-/** Short audio (under 30 seconds) to text. */
+/** What Sarvam heard, and the language it heard it in. */
+export type Transcription = { transcript: string; languageCode: string | null };
+
+/**
+ * Short audio (under 30 seconds) to text. `language` is the merchant's
+ * language; "unknown" asks Sarvam to detect it.
+ */
 export async function speechToText(
   audio: Blob,
-  languageCode = "hi-IN",
+  language: VoiceLanguage | "unknown" = DEFAULT_VOICE_LANGUAGE,
 ): Promise<string> {
+  return (await transcribe(audio, language)).transcript;
+}
+
+/** Like `speechToText`, also returning the language Sarvam heard. */
+export async function transcribe(
+  audio: Blob,
+  language: VoiceLanguage | "unknown" = DEFAULT_VOICE_LANGUAGE,
+): Promise<Transcription> {
   // Browsers label recordings "audio/webm;codecs=opus"; Sarvam rejects the
   // codecs parameter but accepts the bare type.
   const type = audio.type.split(";")[0].trim() || "audio/webm";
   const form = new FormData();
   form.append("file", new Blob([audio], { type }), `sale.${type.split("/")[1] ?? "webm"}`);
-  form.append("model", "saaras:v4");
-  form.append("language_code", languageCode);
+  form.append("model", STT_MODEL);
+  form.append("language_code", language);
   const res = await fetch(`${BASE}/speech-to-text`, {
     method: "POST",
     headers: { "api-subscription-key": sarvamKey() },
@@ -38,14 +62,27 @@ export async function speechToText(
     signal: AbortSignal.timeout(20_000),
   });
   if (!res.ok) await fail(res);
-  const json = (await res.json()) as { transcript?: string };
-  return (json.transcript ?? "").trim();
+  const json = (await res.json()) as { transcript?: string; language_code?: string | null };
+  return { transcript: (json.transcript ?? "").trim(), languageCode: json.language_code ?? null };
 }
 
-/** Text to WAV audio bytes. */
+/** The JSON body sent to /text-to-speech. Exported for tests. */
+export function ttsRequestBody(text: string, language: VoiceLanguage, speaker?: Speaker) {
+  return {
+    text: text.slice(0, 2500),
+    language_code: language,
+    model: TTS_MODEL,
+    speaker: speaker ?? speakerFor(language),
+    pace: ANNOUNCE_PACE,
+    output_audio_codec: TTS_CODEC,
+  };
+}
+
+/** Text to MP3 bytes (`TTS_CONTENT_TYPE`) in the language's own voice. */
 export async function textToSpeech(
   text: string,
-  languageCode = "hi-IN",
+  language: VoiceLanguage = DEFAULT_VOICE_LANGUAGE,
+  speaker?: Speaker,
 ): Promise<Buffer> {
   const res = await fetch(`${BASE}/text-to-speech`, {
     method: "POST",
@@ -53,12 +90,7 @@ export async function textToSpeech(
       "api-subscription-key": sarvamKey(),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      text: text.slice(0, 2500),
-      language_code: languageCode,
-      model: "bulbul:v3",
-      speaker: "priya",
-    }),
+    body: JSON.stringify(ttsRequestBody(text, language, speaker)),
     signal: AbortSignal.timeout(30_000),
   });
   if (!res.ok) await fail(res);
