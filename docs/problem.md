@@ -32,9 +32,35 @@ A kirana counter at 7 pm: four customers pay within a minute, ₹826, ₹120, �
 | C | **Short code per payment** | The Soundbox says a two-digit code with the announcement ("₹826 mila, code 47"); the merchant starts the tag with "47". | Works for equal amounts; voice only. | One more thing to say; codes repeat across the day. |
 | D | **Bill before payment** | The merchant states or scans the items first; Paytm creates a dynamic QR for that amount with the order attached; the customer pays that QR. | The proof exists **before** the money moves and is bound by order id, not by timing. Strongest proof; no race at all. | Changes the merchant's habit; needs dynamic QR or a billing screen at the counter. |
 
-### Leaning
+### What we found about D (checked 2026-11-15)
 
-D is the strongest answer and fits the product line ("the proof already exists before the freeze happens"), but it is a bigger change. A is the practical fix for the demo and the static-QR shop. B and C can sit on top of A for Soundbox-only merchants.
+Option D needs a dynamic QR, and our target merchant probably cannot get one:
+
+- Paytm's dynamic QR is built for merchants with a billing system or POS that calls Paytm's API with an order id and amount ([Paytm developer docs](https://paytmpayments.com/docs/dynamic-qr-code-payments), [create QR API](https://paytmpayments.com/docs/api/create-qr-code-api)). One summary of Paytm's pages describes it as aimed at larger, high-volume businesses.
+- We found no Paytm page showing a small shop typing an amount into the Soundbox or the Paytm for Business app to get a QR for that amount. A 2024 report said Paytm was working on it; we found nothing saying it shipped.
+- Other providers do sell a "dynamic Soundbox" to small merchants ([ICICI](https://www.icici.bank.in/business-banking/cms/merchant-solutions/upi-collections), [Razorpay](https://razorpay.com/docs/pos/dynamic-soundbox.md)), so it is possible in principle, but it is not what the kirana in our demo has.
+- Soundbox coverage only ever mentions announcing and showing the **amount**, never the payer's name ([Outlook Business on Soundbox 2.0](https://www.outlookbusiness.com/apps/paytm-introduces-soundbox-20-to-ease-payments-acceptance-6373)).
+
+Not confirmed with Paytm. Treat D as a future option, not the plan.
+
+### Chosen direction: match by amount, then by payer name
+
+The merchant has a static QR and a Soundbox. The tag says which payment it is for:
+
+> "Aath sau chhabbis, Ramesh: do kilo cheeni, ek tel."
+
+1. **Amount first.** The parser reads the spoken amount and looks only at payments still inside their tagging window. If exactly one open payment has that amount, the tag binds to it.
+2. **Name when amounts clash.** If two open payments have the same amount, compare the spoken name with the payer name on each UPI payment. UPI payments carry the payer's name in Paytm's own records; Hindi and English spellings (रमेश / Ramesh) must match.
+3. **Still unsure, ask.** If nothing matches, or two still match, the tag is held and the merchant picks a payment card with one tap. If the window closes first, the payments stay untagged. The system never guesses.
+4. **Amount is optional when only one payment is open.** The current one-at-a-time flow keeps working.
+
+The name brings a privacy cost, because the guardrails say "tag the goods, not the customer":
+
+- The name is used **only to pick the payment**. It is removed from the stored transcript (replaced with "[payer]") and never stored in full.
+- The certificate records how the tag was bound: "matched by amount", "matched by amount and payer name", or "chosen by tap". It never shows the name itself.
+- The merchant can always skip the name. If both payers have the same name, use the tap.
+
+Option A's payment cards stay as the fallback screen; this direction adds B (amount) and a name tiebreak on top. C (a spoken code) is dropped unless the name tiebreak turns out unreliable.
 
 Whatever is chosen:
 
@@ -47,7 +73,8 @@ Whatever is chosen:
 
 - Should the window be longer when several payments are open at once, or does that weaken the proof too much?
 - How common are equal-amount payments within two minutes? (Needs real Soundbox data.)
-- Is dynamic QR with an order attached available to small Soundbox merchants today? Check before claiming it.
+- Is dynamic QR available to small Soundbox merchants today? Our search found no sign of it (see above); confirm with Paytm before saying either way in the pitch.
+- Is the payer's name reliably present on the UPI payment, and how well does speech-to-text catch Indian names? Test with Sarvam on real names before relying on the tiebreak.
 
 ---
 
@@ -77,7 +104,7 @@ Kavach's whole claim is that the proof was recorded **at payment time** and tied
 
 ### Leaning
 
-Offer A now (it is the voice tag with a different input) and design toward B. Allow D only if it is clearly separated and labelled, or not at all; it is the feature most likely to be abused and the one that most weakens the pitch.
+Offer A now (it is the voice tag with a different input). Bind the invoice to its payment the same way as a voice tag: by the invoice total, then by the payer name if totals clash, else a tap. B needs dynamic QR, which small merchants likely do not have (see Problem 1), so it stays a later option. Allow D only if it is clearly separated and labelled, or not at all; it is the feature most likely to be abused and the one that most weakens the pitch.
 
 Whatever is chosen:
 
