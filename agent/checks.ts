@@ -47,8 +47,8 @@ export function checkDraft(text: string, allowedAmounts: number[]): CheckResult 
   const allowed = new Set(allowedAmounts);
   // Amounts however they are written: ₹826, Rs 826, 826 रुपये, 826 rupees.
   const AMOUNTS = [
-    /(?:₹|Rs.?|INR)s?([d,]+(?:.d+)?)/gi,
-    /([d,]+(?:.d+)?)s?(?:रुपये|रुपए|rupees)/gi,
+    /(?:₹|\bRs\.?|\bINR)\s?([\d,]+(?:\.\d+)?)/gi,
+    /([\d,]+(?:\.\d+)?)\s?(?:रुपये|रुपए|rupees)/gi,
   ];
   for (const pattern of AMOUNTS) {
     for (const m of text.matchAll(pattern)) {
