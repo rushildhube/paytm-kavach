@@ -2,6 +2,7 @@
 
 import { useState, useSyncExternalStore } from "react";
 import type { BankSnapshot } from "@backend/api";
+import { DEMO_PAYMENT } from "@data/seed";
 import type { HoldScope } from "@backend/types";
 import { inr, when } from "./parts";
 import { useLive } from "./useLive";
@@ -27,7 +28,11 @@ export default function BankConsole() {
 
   const report = state.reports.at(-1) ?? null;
   const reportedTxn = report ? state.transactions.find((t) => t.id === report.txnId) : null;
-  const latest = state.transactions[0] ?? null;
+  // The script reports the ₹826 bill payment; point at it, else the newest payment.
+  const target =
+    state.transactions.find((t) => t.amountInr === DEMO_PAYMENT.amountInr && !t.reported) ??
+    state.transactions[0] ??
+    null;
   const hold = state.hold;
   const tracker = state.tracker;
   const filed = tracker && tracker.stage !== "not_filed";
@@ -102,8 +107,10 @@ export default function BankConsole() {
               </div>
             </div>
           )}
-          {!report && latest && (
-            <p className="mt-3 text-xs text-slate-500">On stage: report the latest payment ({inr(latest.amountInr)}).</p>
+          {!report && target && (
+            <p className="mt-3 text-xs text-slate-500">
+              On stage: report the {inr(target.amountInr)} payment ({when(target.at)}).
+            </p>
           )}
         </section>
 
