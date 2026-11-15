@@ -35,6 +35,14 @@ export default function BankConsole() {
   const hold = state.hold;
   const tracker = state.tracker;
   const filed = tracker && tracker.stage !== "not_filed";
+  // Before a hold there is no tracker; take the figure from the ladder the same way
+  // backend/rules.ts escalateAfterDays() does: every step's days except the last.
+  const escalateAfterDays =
+    tracker?.escalateAfterDays ??
+    state.ladder.steps.slice(0, -1).reduce((sum, s) => sum + (s.days ?? 0), 0);
+  // One English name per scope on this screen: "Lien" and "Debit freeze".
+  const lienAmount = hold ? hold.heldAmountInr : reportedTxn ? reportedTxn.amountInr : null;
+  const shownScope: HoldScope = hold ? hold.scope : scope;
 
   const reset = () => call({ action: "reset" });
 
@@ -76,7 +84,7 @@ export default function BankConsole() {
             complaint names one payment that reached {state.merchant.shopName}.
           </p>
           <ul className="mt-3 divide-y divide-slate-100">
-            {state.transactions.slice(0, 4).map((t) => (
+            {state.transactions.map((t) => (
               <li key={t.id} className="flex items-center justify-between gap-2 py-2">
                 <div>
                   <div className="font-semibold">{inr(t.amountInr)}</div>
@@ -124,16 +132,18 @@ export default function BankConsole() {
           </p>
           <fieldset className="mt-3 space-y-2" disabled={!report || !!hold}>
             <ScopeOption
-              checked={scope === "lien"}
+              checked={shownScope === "lien"}
               onChange={() => setScope("lien")}
-              title={`Hold ${reportedTxn ? inr(reportedTxn.amountInr) : "the reported amount"} only`}
+              disabled={!report || !!hold}
+              title={`Lien on ${lienAmount !== null ? inr(lienAmount) : "the reported amount"} only`}
               sub="Only the reported amount is blocked; the rest stays usable. The usual action for a single report."
             />
             <ScopeOption
-              checked={scope === "debit_freeze"}
+              checked={shownScope === "debit_freeze"}
               onChange={() => setScope("debit_freeze")}
-              title="Debit freeze on the whole account"
-              sub="No withdrawals at all. Shows the over-reach case, where the merchant asks for it to be narrowed."
+              disabled={!report || !!hold}
+              title="Debit freeze"
+              sub="No withdrawals from the whole account. Shows the over-reach case, where the merchant asks for it to be narrowed."
             />
           </fieldset>
           <button
@@ -141,12 +151,14 @@ export default function BankConsole() {
             disabled={busy !== null || !report || !!hold}
             className={`${BTN.danger} mt-3 w-full`}
           >
-            Apply restriction
+            {hold ? "Restriction in place" : "Apply restriction"}
           </button>
           {hold && (
             <div className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-900">
               <div className="font-semibold">
-                {hold.scope === "debit_freeze" ? "Debit freeze applied" : `Lien of ${inr(hold.heldAmountInr)} applied`}
+                {hold.scope === "debit_freeze"
+                  ? "In place: Debit freeze"
+                  : `In place: Lien on ${inr(hold.heldAmountInr)} only`}
               </div>
               <div className="text-xs">
                 Ref {hold.reference} · {when(hold.placedAt)}. The merchant&apos;s screen has now turned red.
@@ -181,7 +193,7 @@ export default function BankConsole() {
             disabled={busy !== null || !filed || tracker?.stage === "escalation_due"}
             className={`${BTN.navy} mt-3 w-full`}
           >
-            Simulate day {tracker?.escalateAfterDays ?? 15} with no reply
+            Simulate day {escalateAfterDays} with no reply
           </button>
         </section>
       </div>
@@ -240,17 +252,23 @@ function Step({ n, title }: { n: number; title: string }) {
 function ScopeOption({
   checked,
   onChange,
+  disabled = false,
   title,
   sub,
 }: {
   checked: boolean;
   onChange: () => void;
+  disabled?: boolean;
   title: string;
   sub: string;
 }) {
   return (
-    <label className={`flex cursor-pointer gap-3 rounded-xl border-2 p-3 ${checked ? "border-brand bg-brand-tint" : "border-slate-200"}`}>
-      <input type="radio" checked={checked} onChange={onChange} className="mt-1 accent-brand" />
+    <label
+      className={`flex gap-3 rounded-xl border-2 p-3 ${checked ? "border-brand bg-brand-tint" : "border-slate-200"} ${
+        disabled ? `cursor-not-allowed ${checked ? "" : "opacity-50"}` : "cursor-pointer"
+      }`}
+    >
+      <input type="radio" checked={checked} onChange={onChange} disabled={disabled} className="mt-1 accent-brand" />
       <span>
         <span className="block text-sm font-semibold text-slate-900">{title}</span>
         <span className="block text-xs text-slate-600">{sub}</span>

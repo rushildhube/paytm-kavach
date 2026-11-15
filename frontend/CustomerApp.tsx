@@ -164,9 +164,17 @@ export default function CustomerApp() {
                   </span>
                   <span className="font-semibold text-brand-navy">Scan &amp; Pay</span>
                 </button>
-                {["To Mobile or Contact", "To Bank A/c or UPI ID", "To Self A/c"].map((l) => (
+                {(
+                  [
+                    ["To Mobile or Contact", <PhoneIcon key="m" />],
+                    ["To Bank A/c or UPI ID", <BankIcon key="b" />],
+                    ["To Self A/c", <SelfIcon key="s" />],
+                  ] as const
+                ).map(([l, icon]) => (
                   <div key={l} className="flex flex-col items-center gap-1.5 opacity-50">
-                    <span className="h-14 w-14 rounded-2xl bg-brand-tint" />
+                    <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-tint text-brand-navy">
+                      {icon}
+                    </span>
                     <span>{l}</span>
                   </div>
                 ))}
@@ -231,14 +239,15 @@ export default function CustomerApp() {
                   <div className="truncate font-semibold text-slate-900">{payee.shopName}</div>
                   <div className="truncate text-xs text-slate-500">UPI ID: {payee.vpa}</div>
                 </div>
+                <BrandLogo variant="mark" size={22} />
                 <DemoBadge />
               </header>
               <main className="flex flex-1 flex-col items-center px-6 pb-6">
                 <p className="mt-6 text-sm text-slate-500">
                   {bill ? `Bill ${bill.id} from the shop` : `Paying ${payee.shopName}, ${payee.city}`}
                 </p>
-                <div className="mt-3 flex items-baseline text-5xl font-bold text-slate-900">
-                  <span className="mr-1 text-3xl">₹</span>
+                <div className="mt-3 flex items-baseline justify-center text-5xl font-bold tabular-nums text-slate-900">
+                  <span className="mr-0.5">₹</span>
                   {bill ? (
                     <span aria-label="Amount">{bill.amountInr.toLocaleString("en-IN")}</span>
                   ) : (
@@ -248,7 +257,9 @@ export default function CustomerApp() {
                       inputMode="decimal"
                       placeholder="0"
                       autoFocus
-                      className="w-48 bg-transparent text-center outline-none placeholder:text-slate-300"
+                      // Grow with the digits so ₹ stays right beside the amount.
+                      style={{ width: `${Math.max(amount.length, 1) + 0.25}ch` }}
+                      className="min-w-0 bg-transparent p-0 text-left outline-none placeholder:text-slate-300"
                       aria-label="Amount"
                     />
                   )}
@@ -395,6 +406,44 @@ function QrIcon({ size = 28 }: { size?: number }) {
       <rect x="14" y="3" width="7" height="7" rx="1" />
       <rect x="3" y="14" width="7" height="7" rx="1" />
       <path d="M14 14h3v3h-3zM18 18h3v3h-3zM14 20h2M20 14v2" />
+    </svg>
+  );
+}
+
+const ICON = {
+  width: 26,
+  height: 26,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.8,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+  "aria-hidden": true,
+} as const;
+
+function PhoneIcon() {
+  return (
+    <svg {...ICON}>
+      <rect x="6.5" y="2.5" width="11" height="19" rx="2" />
+      <path d="M10.5 18.5h3" />
+    </svg>
+  );
+}
+
+function BankIcon() {
+  return (
+    <svg {...ICON}>
+      <path d="M3 9.5 12 4l9 5.5z" />
+      <path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20.5h18" />
+    </svg>
+  );
+}
+
+function SelfIcon() {
+  return (
+    <svg {...ICON}>
+      <path d="M4 8h13l-3-3M20 16H7l3 3" />
     </svg>
   );
 }
