@@ -22,6 +22,8 @@ The facts listed above for the unbuilt docs come from the November 2026 research
 
 - `sources.md` — the primary source behind each entry in `rules/rules.json`, checked 2026-11-15, with the quoted words and section numbers. It opens with a table of six claims from the research notes that turned out wrong (for example: BNSS 168/94 do not themselves limit a hold; the ladder is bank 7 + police 15 days, so escalation is day 22, not 15; Allahabad and Karnataka allow police freezing under s.106, not the reverse; the RBI draft lifts the hold on day 31, with 60 days as the ceiling). It ends with a "Not yet done" list (Allahabad and Karnataka judgments read only through reports, RBI draft PDF not opened, MHA procedure read via a High Court annex).
 
+- `problem.md` — open product problems with options and the guardrails any answer must keep: (1) many payments at once, so tags can be missed or bound to the wrong sale; (2) attaching an invoice from a dashboard instead of speaking, without allowing back-dated proof.
+
 ## Rules for this folder
 
 - Be honest about prior art. Say plainly that letter drafting exists and that the novelty is pre-freeze, payment-company-verified proof.
