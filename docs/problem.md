@@ -1,6 +1,6 @@
 # Open problems
 
-Two gaps in the tagging flow that the demo hides but a real shop would hit on day one. Neither has a decision yet; this file states the problem, the options and the guardrails any answer must keep. Discussion: GitHub issue linked in the commit.
+Two gaps in the tagging flow that the demo hides but a real shop would hit on day one. Neither has a decision yet; this file states the problem, the options and the guardrails any answer must keep. Discussion: GitHub issue #15.
 
 ---
 
