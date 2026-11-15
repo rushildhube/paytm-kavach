@@ -143,12 +143,12 @@ describe("the database across restarts and schema changes", () => {
   });
 
   it("reset still works when a table the migrations do not know exists", () => {
-    db().exec("CREATE TABLE invoices (id TEXT PRIMARY KEY)");
+    db().exec("CREATE TABLE from_a_newer_branch (id TEXT PRIMARY KEY)");
     const before = store().epoch;
     resetStore();
     expect(store().epoch).toBe(before + 1);
     const left = db()
-      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'invoices'")
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'from_a_newer_branch'")
       .get();
     expect(left).toBeUndefined();
   });

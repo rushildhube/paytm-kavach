@@ -74,6 +74,21 @@ export type SaleTag = {
   billId?: string;
 };
 
+/**
+ * An invoice file the merchant attached at payment time, instead of or as well
+ * as speaking. Only its SHA-256 fingerprint is kept: the merchant's own copy
+ * can later be checked against it, and no buyer details are stored.
+ */
+export type Invoice = {
+  txnId: string;
+  attachedAt: string;
+  sha256: string;
+  kind: "pdf" | "jpeg" | "png" | "webp";
+  sizeBytes: number;
+  /** The total the merchant entered; equal to the payment when present. */
+  totalInr: number | null;
+};
+
 export type HoldType = "police" | "bank";
 
 /**

@@ -3,6 +3,7 @@ import type {
   FraudReport,
   Grievance,
   Hold,
+  Invoice,
   Merchant,
   SaleTag,
   Screening,
@@ -63,6 +64,14 @@ type HoldRow = {
   reference: string;
 };
 type ScreeningRow = { hold_id: string; answers: string; eligibility: string; at: string };
+type InvoiceRow = {
+  txn_id: string;
+  attached_at: string;
+  sha256: string;
+  kind: Invoice["kind"];
+  size_bytes: number;
+  total_inr: number | null;
+};
 type GrievanceRow = { hold_id: string; filed_at: string; escalation_drafted_at: string | null };
 
 const toMerchant = (r: MerchantRow): Merchant =>
@@ -150,6 +159,16 @@ const toGrievance = (r: GrievanceRow): Grievance =>
     ...(r.escalation_drafted_at ? { escalationDraftedAt: r.escalation_drafted_at } : {}),
   });
 
+const toInvoice = (r: InvoiceRow): Invoice =>
+  Object.freeze({
+    txnId: r.txn_id,
+    attachedAt: r.attached_at,
+    sha256: r.sha256,
+    kind: r.kind,
+    sizeBytes: r.size_bytes,
+    totalInr: r.total_inr,
+  });
+
 // Every list is ordered by insertion (rowid), as the old in-memory arrays were.
 
 export const rows = {
@@ -173,6 +192,11 @@ export const rows = {
   saleTag: (txnId: string) => {
     const r = one<TagRow>("SELECT * FROM sale_tags WHERE txn_id = ?", txnId);
     return r ? toTag(r) : undefined;
+  },
+
+  invoice: (txnId: string) => {
+    const r = one<InvoiceRow>("SELECT * FROM invoices WHERE txn_id = ?", txnId);
+    return r ? toInvoice(r) : undefined;
   },
 
   bills: (merchantId?: string) =>
