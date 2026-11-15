@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { checkDraft, renderCitations } from "@agent/checks";
 import { makeDraft } from "@agent/drafts";
 import { buildCertificate } from "@backend/certificate";
@@ -182,11 +182,41 @@ describe("item parsing", () => {
     ]);
   });
 
+  it("treats a sentence end as a break between items", () => {
+    expect(parseSaleItems("2 किलो चीनी, 1 तेल। 2 किलो चीनी।")).toEqual([
+      { name: "चीनी", quantity: 2, unit: "किलो" },
+      { name: "तेल", quantity: 1, unit: null },
+      { name: "चीनी", quantity: 2, unit: "किलो" },
+    ]);
+  });
+
   it("keeps items it cannot quantify", () => {
     expect(parseSaleItems("namak aur haldi")).toEqual([
       { name: "namak", quantity: null, unit: null },
       { name: "haldi", quantity: null, unit: null },
     ]);
+  });
+});
+
+describe("speech to text request", () => {
+  it("sends browser recordings without the codecs parameter Sarvam rejects", async () => {
+    const { speechToText } = await import("@voice/sarvam");
+    const sent: FormData[] = [];
+    vi.stubEnv("SARVAM_API_KEY", "test-key");
+    vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+      sent.push(init.body as FormData);
+      return Response.json({ transcript: "दो किलो चीनी" });
+    });
+    try {
+      const clip = new Blob([new Uint8Array(8)], { type: "audio/webm;codecs=opus" });
+      expect(await speechToText(clip)).toBe("दो किलो चीनी");
+      const file = sent[0].get("file") as File;
+      expect(file.type).toBe("audio/webm");
+      expect(file.name).toBe("sale.webm");
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
   });
 });
 
