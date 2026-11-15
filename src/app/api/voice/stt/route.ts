@@ -1,5 +1,6 @@
 import { clientKey, RateLimited, takeToken } from "@backend/ratelimit";
-import { SarvamUnavailable, speechToText } from "@voice/sarvam";
+import { SarvamUnavailable, transcribe } from "@voice/sarvam";
+import { parseLanguageField } from "@voice/voices";
 
 /** A tag is one short utterance (the recorder stops at 7 s); anything far bigger is refused. */
 const MAX_AUDIO_BYTES = 1_000_000;
@@ -20,8 +21,13 @@ export async function POST(request: Request) {
     if (audio.size > MAX_AUDIO_BYTES) {
       return Response.json({ error: "audio too long" }, { status: 413 });
     }
-    const transcript = await speechToText(audio);
-    return Response.json({ transcript });
+    // Form field `language`: a VoiceLanguage (default hi-IN), or "auto" to
+    // let Sarvam detect it. The Soundbox sends the merchant's setting.
+    const raw = form.get("language");
+    const lang = raw === "auto" ? "unknown" : parseLanguageField(raw);
+    if (!lang) return Response.json({ error: "unsupported language" }, { status: 400 });
+    const { transcript, languageCode } = await transcribe(audio, lang);
+    return Response.json({ transcript, languageCode });
   } catch (err) {
     if (err instanceof RateLimited) return Response.json({ error: err.message }, { status: 429 });
     const status = err instanceof SarvamUnavailable ? 503 : 502;

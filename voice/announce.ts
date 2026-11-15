@@ -1,0 +1,176 @@
+import { DEFAULT_VOICE_LANGUAGE, type VoiceLanguage } from "./languages";
+
+/**
+ * What the Soundbox says, per language. Modelled on the Paytm Soundbox
+ * announcement ("Paytm par ₹826 prapt hue"); the exact wording of the real
+ * device was not confirmed from a primary source. Non-Hindi phrases were
+ * written for the demo and need a native speaker's check before a pitch.
+ *
+ * Amounts stay as digits: bulbul:v3 reads digits as number words in every
+ * language (tested 2026-11-15, see voice/voices.ts). No thousands commas,
+ * which some voices read digit by digit.
+ */
+type Phrases = {
+  /** "Received ₹{amount} on Paytm". */
+  received: (amount: string) => string;
+  /** Word for paise, used when the amount has a fractional part. */
+  paise: string;
+  /** Word for rupees, between the rupee and paise figures. */
+  rupees: string;
+  /** "Bill {n} paid", for a payment against a merchant bill (already tagged). */
+  billPaid: (bill: string) => string;
+  /** Ask the shopkeeper what was sold. */
+  ask: string;
+  /** The tag was saved. */
+  saved: string;
+  /** Several payments are open and the amount did not settle it. */
+  choose: string;
+  /** Spoken once at power on. */
+  poweredOn: string;
+};
+
+export const PHRASES: Record<VoiceLanguage, Phrases> = {
+  "hi-IN": {
+    received: (a) => `पेटीएम पर ${a} प्राप्त हुए।`,
+    rupees: "रुपये",
+    paise: "पैसे",
+    billPaid: (b) => `बिल नंबर ${b} का भुगतान हो गया।`,
+    ask: "क्या बेचा? बोलकर बताइए।",
+    saved: "बिक्री दर्ज हो गई।",
+    choose: "कौन सा पेमेंट? स्क्रीन पर दबाइए।",
+    poweredOn: "साउंडबॉक्स चालू है।",
+  },
+  "en-IN": {
+    received: (a) => `Received ${a} on Paytm.`,
+    rupees: "rupees",
+    paise: "paise",
+    billPaid: (b) => `Bill number ${b} is paid.`,
+    ask: "What did you sell? Please say it.",
+    saved: "Sale saved.",
+    choose: "Which payment? Tap it on the screen.",
+    poweredOn: "Soundbox is on.",
+  },
+  "bn-IN": {
+    received: (a) => `পেটিএম-এ ${a} পাওয়া গেছে।`,
+    rupees: "টাকা",
+    paise: "পয়সা",
+    billPaid: (b) => `বিল নম্বর ${b} পরিশোধ হয়েছে।`,
+    ask: "কী বিক্রি করলেন? বলুন।",
+    saved: "বিক্রি নথিভুক্ত হয়েছে।",
+    choose: "কোন পেমেন্ট? স্ক্রিনে চাপুন।",
+    poweredOn: "সাউন্ডবক্স চালু হয়েছে।",
+  },
+  "gu-IN": {
+    received: (a) => `પેટીએમ પર ${a} મળ્યા.`,
+    rupees: "રૂપિયા",
+    paise: "પૈસા",
+    billPaid: (b) => `બિલ નંબર ${b} ચૂકવાઈ ગયું.`,
+    ask: "શું વેચ્યું? બોલીને કહો.",
+    saved: "વેચાણ નોંધાઈ ગયું.",
+    choose: "કયું પેમેન્ટ? સ્ક્રીન પર દબાવો.",
+    poweredOn: "સાઉન્ડબોક્સ ચાલુ છે.",
+  },
+  "kn-IN": {
+    received: (a) => `ಪೇಟಿಎಂನಲ್ಲಿ ${a} ಸ್ವೀಕರಿಸಲಾಗಿದೆ.`,
+    rupees: "ರೂಪಾಯಿ",
+    paise: "ಪೈಸೆ",
+    billPaid: (b) => `ಬಿಲ್ ಸಂಖ್ಯೆ ${b} ಪಾವತಿಯಾಗಿದೆ.`,
+    ask: "ಏನು ಮಾರಾಟ ಮಾಡಿದಿರಿ? ಹೇಳಿ.",
+    saved: "ಮಾರಾಟ ದಾಖಲಾಗಿದೆ.",
+    choose: "ಯಾವ ಪಾವತಿ? ಪರದೆಯ ಮೇಲೆ ಒತ್ತಿ.",
+    poweredOn: "ಸೌಂಡ್‌ಬಾಕ್ಸ್ ಆನ್ ಆಗಿದೆ.",
+  },
+  "ml-IN": {
+    received: (a) => `പേടിഎമ്മിൽ ${a} ലഭിച്ചു.`,
+    rupees: "രൂപ",
+    paise: "പൈസ",
+    billPaid: (b) => `ബിൽ നമ്പർ ${b} അടച്ചു.`,
+    ask: "എന്താണ് വിറ്റത്? പറയൂ.",
+    saved: "വിൽപ്പന രേഖപ്പെടുത്തി.",
+    choose: "ഏത് പേയ്മെന്റ്? സ്ക്രീനിൽ അമർത്തൂ.",
+    poweredOn: "സൗണ്ട്ബോക്സ് ഓണാണ്.",
+  },
+  "mr-IN": {
+    received: (a) => `पेटीएमवर ${a} मिळाले.`,
+    rupees: "रुपये",
+    paise: "पैसे",
+    billPaid: (b) => `बिल क्रमांक ${b} भरले गेले.`,
+    ask: "काय विकले? बोलून सांगा.",
+    saved: "विक्री नोंदवली गेली.",
+    choose: "कोणते पेमेंट? स्क्रीनवर दाबा.",
+    poweredOn: "साउंडबॉक्स चालू आहे.",
+  },
+  "od-IN": {
+    received: (a) => `ପେଟିଏମରେ ${a} ମିଳିଲା।`,
+    rupees: "ଟଙ୍କା",
+    paise: "ପଇସା",
+    billPaid: (b) => `ବିଲ ନମ୍ବର ${b} ପଇଠ ହେଲା।`,
+    ask: "କଣ ବିକିଲେ? କୁହନ୍ତୁ।",
+    saved: "ବିକ୍ରି ଲେଖାହେଲା।",
+    choose: "କେଉଁ ପେମେଣ୍ଟ? ସ୍କ୍ରିନରେ ଦବାନ୍ତୁ।",
+    poweredOn: "ସାଉଣ୍ଡବକ୍ସ ଚାଲୁ ଅଛି।",
+  },
+  "pa-IN": {
+    received: (a) => `ਪੇਟੀਐਮ 'ਤੇ ${a} ਪ੍ਰਾਪਤ ਹੋਏ।`,
+    rupees: "ਰੁਪਏ",
+    paise: "ਪੈਸੇ",
+    billPaid: (b) => `ਬਿੱਲ ਨੰਬਰ ${b} ਦਾ ਭੁਗਤਾਨ ਹੋ ਗਿਆ।`,
+    ask: "ਕੀ ਵੇਚਿਆ? ਬੋਲ ਕੇ ਦੱਸੋ।",
+    saved: "ਵਿਕਰੀ ਦਰਜ ਹੋ ਗਈ।",
+    choose: "ਕਿਹੜਾ ਪੇਮੈਂਟ? ਸਕ੍ਰੀਨ 'ਤੇ ਦਬਾਓ।",
+    poweredOn: "ਸਾਊਂਡਬਾਕਸ ਚਾਲੂ ਹੈ।",
+  },
+  "ta-IN": {
+    received: (a) => `பேடிஎம்மில் ${a} பெறப்பட்டது.`,
+    rupees: "ரூபாய்",
+    paise: "பைசா",
+    billPaid: (b) => `பில் எண் ${b} செலுத்தப்பட்டது.`,
+    ask: "என்ன விற்றீர்கள்? சொல்லுங்கள்.",
+    saved: "விற்பனை பதிவு செய்யப்பட்டது.",
+    choose: "எந்த பணம்? திரையில் அழுத்தவும்.",
+    poweredOn: "சவுண்ட்பாக்ஸ் இயங்குகிறது.",
+  },
+  "te-IN": {
+    received: (a) => `పేటీఎంలో ${a} అందాయి.`,
+    rupees: "రూపాయలు",
+    paise: "పైసలు",
+    billPaid: (b) => `బిల్లు నంబర్ ${b} చెల్లించబడింది.`,
+    ask: "ఏమి అమ్మారు? చెప్పండి.",
+    saved: "అమ్మకం నమోదైంది.",
+    choose: "ఏ చెల్లింపు? స్క్రీన్‌పై నొక్కండి.",
+    poweredOn: "సౌండ్‌బాక్స్ ఆన్‌లో ఉంది.",
+  },
+};
+
+export function phrasesFor(lang: VoiceLanguage): Phrases {
+  return PHRASES[lang] ?? PHRASES[DEFAULT_VOICE_LANGUAGE];
+}
+
+/**
+ * "826 रुपये", or "826 रुपये 50 पैसे" when there are paise. Digits only,
+ * no grouping commas.
+ */
+export function spokenAmount(amountInr: number, lang: VoiceLanguage): string {
+  const p = phrasesFor(lang);
+  const totalPaise = Math.round(amountInr * 100);
+  const rupees = Math.floor(totalPaise / 100);
+  const paise = totalPaise % 100;
+  const r = `${rupees} ${p.rupees}`;
+  return paise ? `${r} ${paise} ${p.paise}` : r;
+}
+
+/** "BILL-0007" is spoken as "7". */
+export function spokenBill(billId: string): string {
+  const digits = billId.match(/\d+/)?.[0];
+  return digits ? String(Number(digits)) : billId;
+}
+
+/** The payment announcement, with "bill paid" appended for a bill payment. */
+export function announcePayment(
+  payment: { amountInr: number; billId?: string | null },
+  lang: VoiceLanguage,
+): string {
+  const p = phrasesFor(lang);
+  const said = p.received(spokenAmount(payment.amountInr, lang));
+  return payment.billId ? `${said} ${p.billPaid(spokenBill(payment.billId))}` : said;
+}
