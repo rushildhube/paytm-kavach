@@ -9,7 +9,7 @@ import { useRecorder } from "@voice/useRecorder";
 import { BRAND } from "./brand";
 import { BillsTab } from "./merchant/bills";
 import { QrCode } from "./QrCode";
-import { buildUpiUri } from "./upi";
+import { billNote, buildUpiUri } from "./upi";
 import { AppBar, BottomNav, Card, NAVY, type Tab } from "./merchant/chrome";
 import { HoldAlert, MuleScreen, PacketView, TrackerCard, type Answers } from "./merchant/hold";
 import { CollectionCard, PaymentList, type Tagging } from "./merchant/payments";
@@ -357,7 +357,7 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
                       pn: state.merchant.shopName,
                       am: b.amountInr,
                       tr: b.id,
-                      tn: `Bill ${b.id}`,
+                      tn: billNote(b.id, b.text),
                     })}
                     size={240}
                     label={`UPI QR for bill ${b.id}`}
