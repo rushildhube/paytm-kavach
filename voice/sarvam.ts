@@ -24,8 +24,11 @@ export async function speechToText(
   audio: Blob,
   languageCode = "hi-IN",
 ): Promise<string> {
+  // Browsers label recordings "audio/webm;codecs=opus"; Sarvam rejects the
+  // codecs parameter but accepts the bare type.
+  const type = audio.type.split(";")[0].trim() || "audio/webm";
   const form = new FormData();
-  form.append("file", audio, "sale.webm");
+  form.append("file", new Blob([audio], { type }), `sale.${type.split("/")[1] ?? "webm"}`);
   form.append("model", "saaras:v4");
   form.append("language_code", languageCode);
   const res = await fetch(`${BASE}/speech-to-text`, {

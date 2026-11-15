@@ -1,3 +1,26 @@
+# Plan: verify the rules table and watch for law changes (branch `verify/rules`)
+
+Goal: every entry in `rules/rules.json` checked against its primary source, and a feed watcher that flags rules whose law may have changed.
+
+Decision: the watcher **flags, it does not rewrite**. A matching feed item marks the rule "possibly changed, under review" in the app and in the model prompt; a person reads the source and edits `rules.json` by hand. Reason: the guardrail that facts come only from a reviewed table (an auto-edited table would let one misread headline into every merchant's letter).
+
+- [x] 1. Research each rule's primary source (BNSS text, MHA procedure, Supreme Court order, RBI draft) and the official feeds available
+- [x] 2. Update `rules.json`: corrected summaries, `source_url`, `last_checked`, `verified`; real grievance ladder and deadlines if the source gives them
+- [x] 3. Fix any app text or template that relied on a claim that turned out wrong
+- [x] 4. Feed watcher: `rules/feeds.json` (official feeds + per-rule keywords), `backend/watcher.ts` (poll, parse RSS/Atom, match items newer than `last_checked`), alerts in the app state
+- [x] 5. Show alerts: citation badge "possibly changed, under review" with the headline and link; tell the model the rule is under review
+- [x] 6. Tests for the watcher (parsing, matching, no writes to `rules/`); typecheck, lint, build, browser check
+- [x] 7. Commit in focused pieces, push the branch
+
+## Review
+
+Done 2026-11-15. 38 tests pass, typecheck and lint clean, production build passes, browser walkthrough passes (including the simulated law change), live feed check read all three feeds.
+
+- All 10 rules verified (2 new). Six claims in the research notes were wrong; see the table at the top of `docs/sources.md`.
+- Escalation is now due on day 22 (bank 7 + police officer 15), addressed to the District Grievance Officer through the bank.
+- Watched feeds: RBI notifications, RBI press releases, PIB. MHA, I4C, the Supreme Court and India Code have no feed, so changes there are not caught automatically.
+- Still open: the Allahabad and Karnataka judgments were read only through reports; the RBI draft PDF was not opened; final RBI directions are expected by 30 November 2026 and the Supreme Court sits again on 23 November 2026.
+
 # Plan: end-to-end demo path (₹826 flow)
 
 Goal: a thin but complete run of the demo script in `demo/CLAUDE.md`, in one Next.js app.

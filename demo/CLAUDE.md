@@ -9,9 +9,9 @@ Everything needed to run the live demo reliably in front of judges.
   2. The screen turns red: a hold on ₹826.
   3. Kavach explains in Hindi that this is a hold on one payment, not an accusation.
   4. It produces a sale certificate from Paytm's records, plus the drafted grievance for the bank.
-  5. Click "simulate day 15": the officer has not replied, and the escalation draft appears.
+  5. Click "simulate day 22": the bank (7 days) and the police officer (15 days) have both had their time with no decision, and the escalation draft appears.
 - Seed and reset scripts that put the app into the starting state.
-- Clock-simulation controls for jumping to day 15.
+- Clock-simulation controls for jumping to day 22.
 - Pre-recorded audio and cached model outputs as a fallback if the mic or network fails.
 - Screenshots or a backup recording.
 

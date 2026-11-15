@@ -1,0 +1,39 @@
+{
+  "_note": "Official feeds the watcher polls. A feed item that matches a rule's keywords and is newer than the rule's last_checked date flags that rule as 'possibly changed, under review'. The watcher never edits rules.json: a person reads the source, updates the rule and its last_checked date, and that clears the flag. Feeds checked working from Node on 2026-11-15. MHA, I4C, the Supreme Court and India Code publish no feed.",
+  "poll_minutes": 30,
+  "feeds": [
+    {
+      "id": "rbi-notifications",
+      "name": "RBI notifications",
+      "url": "https://rbi.org.in/notifications_rss.xml"
+    },
+    {
+      "id": "rbi-press",
+      "name": "RBI press releases",
+      "url": "https://rbi.org.in/pressreleases_rss.xml"
+    },
+    {
+      "id": "pib",
+      "name": "Press Information Bureau",
+      "url": "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3"
+    }
+  ],
+  "watch": [
+    {
+      "rules": ["rbi-draft-bank-hold"],
+      "keywords": ["money mule", "temporary debit hold", "know your customer) amendment directions", "kyc) amendment directions"]
+    },
+    {
+      "rules": ["mha-procedure-2026", "grievance-via-bank", "merchant-sale-details", "hold-limited-to-amount", "hold-90-days", "police-contact-from-bank"],
+      "keywords": ["cfcfrms", "ncrp", "grievance redressal module", "money restoration module", "i4c", "cyber fraud", "cyber-fraud", "साइबर धोखाधड़ी", "साइबर अपराध"]
+    },
+    {
+      "rules": ["sc-directions-2026-08-04"],
+      "keywords": ["digital arrest", "डिजिटल अरेस्ट"]
+    },
+    {
+      "rules": ["bnss-106", "bnss-107", "hold-limited-to-amount"],
+      "keywords": ["nagarik suraksha sanhita", "bnss", "नागरिक सुरक्षा संहिता"]
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { checkDraft, renderCitations } from "@agent/checks";
 import { makeDraft } from "@agent/drafts";
 import { buildCertificate } from "@backend/certificate";
@@ -100,6 +100,22 @@ describe("rules table", () => {
     for (const r of allRules()) expect(r.source_name.length).toBeGreaterThan(0);
   });
 
+  it("every rule has been checked against a primary source", () => {
+    for (const r of allRules()) {
+      expect(r.verified, r.id).toBe(true);
+      expect(r.source_url, r.id).toMatch(/^https:\/\//);
+      expect(r.last_checked, r.id).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
+  it("the ladder follows the MHA procedure: bank 7 days, police 15, then the District Grievance Officer", async () => {
+    const { escalateAfterDays, escalationTarget, ladder, ladderStepOn } = await import("@backend/rules");
+    expect(ladder().placeholder).toBe(false);
+    expect(escalateAfterDays()).toBe(22);
+    expect(escalationTarget().to).toMatch(/District Grievance Officer/);
+    expect([0, 6, 7, 21, 22, 40].map(ladderStepOn)).toEqual([0, 0, 1, 1, 2, 2]);
+  });
+
   it("a rule cannot be marked verified without a URL and a checked date", () => {
     const bad = {
       rules: [{ ...allRules()[0], verified: true, source_url: null, last_checked: null }],
@@ -182,11 +198,41 @@ describe("item parsing", () => {
     ]);
   });
 
+  it("treats a sentence end as a break between items", () => {
+    expect(parseSaleItems("2 किलो चीनी, 1 तेल। 2 किलो चीनी।")).toEqual([
+      { name: "चीनी", quantity: 2, unit: "किलो" },
+      { name: "तेल", quantity: 1, unit: null },
+      { name: "चीनी", quantity: 2, unit: "किलो" },
+    ]);
+  });
+
   it("keeps items it cannot quantify", () => {
     expect(parseSaleItems("namak aur haldi")).toEqual([
       { name: "namak", quantity: null, unit: null },
       { name: "haldi", quantity: null, unit: null },
     ]);
+  });
+});
+
+describe("speech to text request", () => {
+  it("sends browser recordings without the codecs parameter Sarvam rejects", async () => {
+    const { speechToText } = await import("@voice/sarvam");
+    const sent: FormData[] = [];
+    vi.stubEnv("SARVAM_API_KEY", "test-key");
+    vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+      sent.push(init.body as FormData);
+      return Response.json({ transcript: "दो किलो चीनी" });
+    });
+    try {
+      const clip = new Blob([new Uint8Array(8)], { type: "audio/webm;codecs=opus" });
+      expect(await speechToText(clip)).toBe("दो किलो चीनी");
+      const file = sent[0].get("file") as File;
+      expect(file.type).toBe("audio/webm");
+      expect(file.name).toBe("sale.webm");
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
   });
 });
 

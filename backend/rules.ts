@@ -28,14 +28,19 @@ const rulesFileSchema = z.object({
   rules: z.array(ruleSchema),
   ladder: z.object({
     placeholder: z.boolean(),
+    source_rule: z.string().optional(),
     note: z.string(),
-    steps: z.array(
-      z.object({
-        level: z.number().int(),
-        to: z.string(),
-        escalate_after_days: z.number().int().positive().nullable(),
-      }),
-    ),
+    steps: z
+      .array(
+        z.object({
+          level: z.number().int(),
+          to: z.string(),
+          /** Days this step has to act, counted from when it receives the grievance. */
+          days: z.number().int().positive().nullable(),
+          deadline: z.string(),
+        }),
+      )
+      .min(2),
   }),
 });
 
@@ -66,6 +71,23 @@ export function rulesFor(holdType: HoldType): Rule[] {
   return file.rules.filter((r) => r.applies_when.includes(key));
 }
 
+/**
+ * Days after the merchant complains at the bank by which every step before
+ * the last should have acted; after that the escalation draft is offered.
+ */
 export function escalateAfterDays(): number {
-  return file.ladder.steps[0].escalate_after_days ?? 15;
+  return file.ladder.steps.slice(0, -1).reduce((sum, s) => sum + (s.days ?? 0), 0);
 }
+
+/** The step that should hold the grievance on a given day since filing. */
+export function ladderStepOn(daysSinceFiled: number): number {
+  let elapsed = 0;
+  const steps = file.ladder.steps;
+  for (let i = 0; i < steps.length - 1; i++) {
+    elapsed += steps[i].days ?? 0;
+    if (daysSinceFiled < elapsed) return i;
+  }
+  return steps.length - 1;
+}
+
+export const escalationTarget = () => file.ladder.steps.at(-1)!;

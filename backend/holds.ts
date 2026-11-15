@@ -1,6 +1,6 @@
 import { REPEAT_REPORT_LIMIT } from "./config";
 import { getTransaction } from "./ledger";
-import { escalateAfterDays } from "./rules";
+import { escalateAfterDays, ladderStepOn } from "./rules";
 import { now, store } from "./store";
 import type {
   Eligibility,
@@ -83,7 +83,7 @@ export function trackerStatus(holdId: string): TrackerStatus {
   const limit = escalateAfterDays();
   const grievance = getGrievance(holdId);
   if (!grievance) {
-    return { stage: "not_filed", daysSinceFiled: null, escalateAfterDays: limit };
+    return { stage: "not_filed", daysSinceFiled: null, escalateAfterDays: limit, currentStep: null };
   }
   const days = Math.floor(
     (now().getTime() - Date.parse(grievance.filedAt)) / 86_400_000,
@@ -92,5 +92,6 @@ export function trackerStatus(holdId: string): TrackerStatus {
     stage: days >= limit ? "escalation_due" : "awaiting_reply",
     daysSinceFiled: days,
     escalateAfterDays: limit,
+    currentStep: ladderStepOn(days),
   };
 }
