@@ -16,5 +16,10 @@ export default defineConfig({
       "@": dir("src"),
     },
   },
-  test: { include: ["tests/**/*.test.ts"], environment: "node" },
+  test: {
+    include: ["tests/**/*.test.ts"],
+    environment: "node",
+    // Each test worker gets its own empty in-memory database (backend/db/connection.ts).
+    env: { KAVACH_DB: ":memory:" },
+  },
 });

@@ -2,7 +2,7 @@
 
 Automated tests. The guardrails are the product's credibility, so they get tests of their own.
 
-On `feat/multi-screen-demo` there are 45 tests. The extra ones in `guardrails.test.ts` cover: a fraud report reaches only the bank snapshot; the merchant sees the hold with the report's reference; customer and Soundbox snapshots never carry hold data; the payer from the customer screen is stored masked; holds default to `lien`; reset bumps `epoch`; debit-freeze explanation and grievance pass `checkDraft` and cite `hold-limited-to-amount`.
+On `feat/multi-screen-demo` there are 45 tests (152 on `feat/db-bills` after merging 2457dbd). The extra ones in `guardrails.test.ts` cover: a fraud report reaches only the bank snapshot; the merchant sees the hold with the report's reference; customer and Soundbox snapshots never carry hold data; the payer from the customer screen is stored masked; holds default to `lien`; reset bumps `epoch`; debit-freeze explanation and grievance pass `checkDraft` and cite `hold-limited-to-amount`.
 
 ## What belongs here
 
@@ -32,6 +32,8 @@ Run with `npm test` (Vitest, `vitest.config.mts`, node environment, same path al
   - ₹826 scenario: payment, Hindi tag, hold, certificate, then all three template drafts pass `checkDraft` and carry a disclaimer.
   - item parsing (romanised Hindi, sentence ends, unquantified items); STT request strips the codecs MIME parameter; the model prompt carries IST, not raw UTC.
 - `voice-language.test.ts` — announcement phrases for all 11 languages (digits, paise, bill number, Hindi/English amounts round-trip through `spokenAmountsInr`), language validation and speaker map (v3 short names only), Sarvam TTS/STT request bodies, and the voice routes (language passed, `auto` → `unknown`, default `hi-IN`, 400 on unknown, no client-chosen speaker, 503 without a key). Fetch is stubbed.
+- `db.test.ts` (branch `feat/db-bills`) — the database: in memory under Vitest at the current schema version; `sale_tags` UPDATE and DELETE refused by trigger; CHECKs refuse an unmasked payer handle and a full account number; bill content fixed and status leaves `open` once; `store()` is read-only; reset drops and reseeds (tags included) and bumps `epoch`; stored tags read back frozen. Restarts and schema changes: reopening an existing file keeps its data and triggers without reseeding; reset works with a table no migration knows; every row read back is frozen. Bills: paying a bill binds its text as a `source: "bill"`, `boundBy: "bill"` tag; a paid or cancelled bill, a wrong amount and another merchant's bill are refused, and a refused payment writes no transaction; customer `bill-lookup` shows only `id`, `amountInr`, `status`, `shopName`; the customer `pay` reply is `{ txn: { id, amountInr, at } }` only; bill ids match the UPI `tr` pattern and bills cap at ₹1,00,000; the merchant snapshot carries `merchant.vpa`. `tag-auto`: `none_open`; binds the only open payment (`only_open`) or a unique amount match (`amount`); returns `ambiguous` and writes no tag otherwise. `settings` stores the language in the database and rejects an unknown one.
+- `guardrails.test.ts` also checks that the database itself refuses to change or delete a stored tag.
 - `watcher.test.ts` — RSS/Atom parsing, matching only items on or after `last_checked`, undated-item baseline, failing feed reported, the watcher never writes to `rules/`, and the simulated law change flags rules while reset clears only simulated alerts.
 
 ## Rules for this folder
@@ -39,4 +41,5 @@ Run with `npm test` (Vitest, `vitest.config.mts`, node environment, same path al
 - Tests use synthetic fixtures from `data/`.
 - LLM-dependent tests assert properties (citations valid, disclaimers present, no promises), not exact wording.
 - A guardrail test failing blocks the demo build.
-- Call `resetStore()` (and `resetWatcher()` for watcher tests) in `beforeEach`; the store is a process-wide global.
+- Call `resetStore()` (and `resetWatcher()` for watcher tests) in `beforeEach`. Each test file's worker has its own in-memory SQLite database (`KAVACH_DB=:memory:` in `vitest.config.mts`), and `resetStore()` drops and reseeds it.
+- To prove a guarantee holds in SQL too, use the raw handle `db()` from `@backend/db/connection` and expect the statement to throw.
