@@ -56,10 +56,10 @@ export function BillsTab({
 
   return (
     <div className="space-y-3">
-      <Card title="Create bill · बिल बनाइए">
+      <Card title="बिल बनाइए · Create bill">
         <form onSubmit={submit} className="space-y-3">
           <label className="block">
-            <span className="text-xs font-medium text-slate-500">Amount · रक़म</span>
+            <span className="text-xs font-medium text-slate-500">रक़म · Amount</span>
             <div className="mt-1 flex items-center rounded-xl border border-slate-300 px-3 focus-within:border-brand">
               <span className="text-2xl font-semibold text-slate-400">₹</span>
               <input
@@ -73,7 +73,7 @@ export function BillsTab({
             </div>
           </label>
           <label className="block">
-            <span className="text-xs font-medium text-slate-500">What is being sold · क्या बेचा</span>
+            <span className="text-xs font-medium text-slate-500">क्या बेचा · What is being sold</span>
             <input
               value={text}
               onChange={(e) => setText(e.target.value.slice(0, 300))}
@@ -118,7 +118,7 @@ export function BillsTab({
             className="w-full rounded-full py-3 text-sm font-semibold text-white disabled:opacity-50"
             style={{ background: PRIMARY }}
           >
-            {busy === "bill-create" ? "Creating…" : where === "phone" ? "Create bill" : "Create bill and send to Soundbox"}
+            {busy === "bill-create" ? "बन रहा है…" : where === "phone" ? "बिल बनाइए · Create bill" : "बिल बनाकर Soundbox पर भेजिए"}
           </button>
           <p className="text-xs text-slate-500">
             The buyer pays against this bill, so the sale is recorded before the payment. A bill
@@ -168,7 +168,7 @@ export function BillsTab({
         ),
       )}
 
-      <Card title="Bills">
+      <Card title="बिल · Bills">
         {bills.length === 0 ? (
           <p className="py-4 text-center text-sm text-slate-500">No bills yet.</p>
         ) : (

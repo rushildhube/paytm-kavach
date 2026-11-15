@@ -298,7 +298,7 @@ export default function SoundboxApp() {
         : phase.kind === "choose"
           ? { big: phrases.choose, small: `“${phase.transcript}” matches more than one payment. Tap the right one.` }
           : open.length > 0
-            ? { big: phrases.ask, small: sarvam ? "Hold to talk, or tap once and speak" : "Live speech is off (no SARVAM_API_KEY)" }
+            ? { big: phrases.ask, small: sarvam ? words.holdHint : "Live speech is off (no SARVAM_API_KEY)" }
             : request
               ? { big: `${inr(request.amountInr)} · ${request.billId}`, small: "Waiting for the buyer to scan the bill QR. Speak again to make a new bill." }
               : { big: phrases.billHint, small: sarvam ? "Say the amount, then what is sold. The box shows the bill QR." : "Live speech is off (no SARVAM_API_KEY)" };
@@ -338,7 +338,7 @@ export default function SoundboxApp() {
               {powered ? (last ? inr(last.amountInr) : "₹ ----") : ""}
             </div>
             <div className="mt-0.5 h-4 text-xs text-brand">
-              {powered && last ? (last.billId ? `${last.billId} ✓` : "RECEIVED ✓") : powered ? "READY" : ""}
+              {powered && last ? (last.billId ? `${last.billId} ✓` : words.received) : powered ? words.ready : ""}
             </div>
           </div>
 
@@ -464,7 +464,7 @@ export default function SoundboxApp() {
           {cards.length > 0 && (
             <section>
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                Waiting for a tag · {cards.length}
+                {words.waiting} · {cards.length}
               </h2>
               <ul className="space-y-2">
                 {cards.map((p) => {
@@ -492,7 +492,7 @@ export default function SoundboxApp() {
                             {p.secondsLeft}s
                           </span>
                           <span className="text-xs text-slate-500">
-                            {phase.kind === "choose" ? "Tap: this one" : sarvam && !micFailed ? "Tap and speak" : "Tap to tag"}
+                            {phase.kind === "choose" ? "Tap: this one" : sarvam && !micFailed ? words.tapSpeak : "Tap to tag"}
                           </span>
                         </span>
                       </button>
@@ -509,7 +509,7 @@ export default function SoundboxApp() {
           {/* recent */}
           {done.length > 0 && (
             <section>
-              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Recent</h2>
+              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">{words.latest}</h2>
               <ul className="divide-y divide-slate-200 overflow-hidden rounded-2xl bg-white/80 shadow-sm">
                 {done.map((p) => (
                   <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
@@ -519,12 +519,12 @@ export default function SoundboxApp() {
                     </span>
                     <span className="truncate text-right text-slate-600">
                       {p.transcript
-                        ? `${p.billId ? `${p.billId} · ` : "🛡 "}${p.transcript}`
+                        ? `🛡 ${p.billId ? `${p.billId} · ` : ""}${p.transcript}`
                         : p.billId
                           ? `${p.billId} paid`
                           : p.needsTag
                             ? "Not tagged (window closed)"
-                            : `Under ${inr(state?.thresholdInr ?? 500)}, no tag needed`}
+                            : `${inr(state?.thresholdInr ?? 500)} से कम · tag not needed`}
                     </span>
                   </li>
                 ))}

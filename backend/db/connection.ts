@@ -149,7 +149,7 @@ function seed(conn: DatabaseSync, epoch: number): void {
     epoch,
     clock_offset_ms: 0,
     active_merchant_id: DEMO_MERCHANT_ID,
-    next_txn: 2001,
+    next_txn: 1004,
     next_hold: 1,
     next_report: 1,
     next_bill: 1,

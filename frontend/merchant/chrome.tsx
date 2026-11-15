@@ -39,7 +39,7 @@ export function AppBar({
           for Business
         </span>
         <span className="ml-auto">
-          <DemoPill label="Demo · Kavach" />
+          <DemoPill />
         </span>
       </div>
       <div className="flex items-center gap-3 px-4 pt-2 pb-3">
@@ -79,11 +79,11 @@ export function AppBar({
 }
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "home", label: "Home", icon: "⌂" },
-  { id: "payments", label: "Payments", icon: "₹" },
-  { id: "proofs", label: "Proofs", icon: "🛡" },
-  { id: "bills", label: "Bills", icon: "▤" },
-  { id: "soundbox", label: "Soundbox", icon: "🔊" },
+  { id: "home", label: "होम", icon: "⌂" },
+  { id: "payments", label: "पेमेंट", icon: "₹" },
+  { id: "proofs", label: "सबूत", icon: "🛡" },
+  { id: "bills", label: "बिल", icon: "▤" },
+  { id: "soundbox", label: "साउंडबॉक्स", icon: "🔊" },
 ];
 
 /** Bottom tabs. Sticky inside the phone frame, so it also works on `/`. */

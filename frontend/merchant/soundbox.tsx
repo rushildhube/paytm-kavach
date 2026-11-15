@@ -18,7 +18,7 @@ export function SoundboxTab({
   const current = state.settings.language;
   return (
     <div className="space-y-3">
-      <Card title="Soundbox voice language · साउंडबॉक्स की भाषा">
+      <Card title="साउंडबॉक्स की भाषा · Soundbox voice language">
         <p className="mb-3 text-xs text-slate-500">
           The Soundbox announces payments and asks “क्या बेचा?” in this language.
         </p>
@@ -56,7 +56,7 @@ export function SoundboxTab({
           <li>
             🛡 Payments of {inr(state.thresholdInr)} and above: the Soundbox asks what was sold.
           </li>
-          <li>⏱ You have {state.tagWindowSeconds} seconds to answer. It cannot be added later.</li>
+          <li>⏱ You have {state.tagWindowSeconds}s to answer. It cannot be added later.</li>
           <li>🔒 Only the last four digits of your account and a masked buyer handle are kept.</li>
         </ul>
       </Card>
