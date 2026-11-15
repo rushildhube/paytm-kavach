@@ -41,6 +41,7 @@ import {
   trackerStatus,
 } from "./holds";
 import { tx } from "./db/connection";
+import { rows } from "./db/rows";
 import {
   getSaleTag,
   getTransaction,
@@ -278,6 +279,7 @@ const ActionSchema = z.discriminatedUnion("action", [
   act("filed", { holdId: id }),
   act("advance", { days: z.number().int().min(1).max(365) }),
   act("escalation", { holdId: id }),
+  act("data-purposes", {}),
   act("check-feeds", {}),
   act("simulate-law-change", {}),
 ]);
@@ -438,6 +440,10 @@ export async function handle(raw: unknown) {
       break;
     case "bill-cancel":
       result = cancelBill(input.billId);
+      break;
+    case "data-purposes":
+      // Why each piece of buyer-related data is held and for how long (#25).
+      result = rows.dataPurposes();
       break;
     case "bill-lookup": {
       // What a buyer's phone may see after scanning: shop and amount, nothing else.

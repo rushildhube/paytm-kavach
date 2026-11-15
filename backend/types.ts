@@ -79,6 +79,16 @@ export type SaleTag = {
  * as speaking. Only its SHA-256 fingerprint is kept: the merchant's own copy
  * can later be checked against it, and no buyer details are stored.
  */
+/** Why one stored column of buyer-related data is held, and for how long (issue #25). */
+export type DataPurpose = {
+  table: string;
+  column: string;
+  data: string;
+  purpose: string;
+  minimised: string;
+  retention: string;
+};
+
 export type Invoice = {
   txnId: string;
   attachedAt: string;
