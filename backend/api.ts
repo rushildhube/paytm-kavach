@@ -1,5 +1,5 @@
 import { makeDraft, type Draft } from "@agent/drafts";
-import { DEMO_PAYMENT } from "@data/seed";
+import { DEMO_PAYEE_VPA, DEMO_PAYMENT } from "@data/seed";
 import {
   LEGAL_AID_REFERRAL_EN,
   LEGAL_AID_REFERRAL_HI,
@@ -20,6 +20,7 @@ import {
   getHold,
   markFiled,
   placeHold,
+  reportFraud,
   trackerStatus,
 } from "./holds";
 import { getSaleTag, needsTag, recordPayment, recordSaleTag } from "./ledger";
@@ -32,14 +33,17 @@ import {
   setActiveMerchant,
   store,
 } from "./store";
-import type { Eligibility, MuleScreenAnswers, SaleTag } from "./types";
+import type { Eligibility, HoldScope, MuleScreenAnswers, SaleTag } from "./types";
 
-/** Everything the UI needs to draw itself. Contains only minimised data. */
-export function snapshot() {
+/** Which screen is asking. Each one sees only what that actor would see. */
+export type Role = "merchant" | "soundbox" | "customer" | "bank";
+const ROLES: Role[] = ["merchant", "soundbox", "customer", "bank"];
+
+function merchantTransactions() {
   const s = store();
   const merchant = activeMerchant();
   const at = now();
-  const transactions = s.transactions
+  return s.transactions
     .filter((t) => t.merchantId === merchant.id)
     .map((t) => {
       const tag = getSaleTag(t.id) ?? null;
@@ -57,15 +61,25 @@ export function snapshot() {
       };
     })
     .sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+}
 
+/**
+ * What the merchant app needs to draw itself. Contains only minimised data,
+ * and nothing about a fraud report until a hold actually exists.
+ */
+export function snapshot() {
+  const s = store();
+  const merchant = activeMerchant();
   const hold = s.holds.at(-1) ?? null;
   return {
-    now: at.toISOString(),
+    epoch: s.epoch,
+    now: now().toISOString(),
     simulatedDays: Math.round(s.clockOffsetMs / 86_400_000),
     merchant,
     merchants: s.merchants.map((m) => ({ id: m.id, shopName: m.shopName })),
     thresholdInr: TAG_THRESHOLD_INR,
-    transactions,
+    tagWindowSeconds: TAG_WINDOW_SECONDS,
+    transactions: merchantTransactions(),
     hold,
     grievance: hold ? (getGrievance(hold.id) ?? null) : null,
     tracker: hold ? trackerStatus(hold.id) : null,
@@ -76,7 +90,85 @@ export function snapshot() {
   };
 }
 
+/** The Soundbox only announces payments and takes sale tags. No holds, no reports. */
+export function soundboxSnapshot() {
+  const s = store();
+  return {
+    epoch: s.epoch,
+    shopName: activeMerchant().shopName,
+    thresholdInr: TAG_THRESHOLD_INR,
+    tagWindowSeconds: TAG_WINDOW_SECONDS,
+    speechConfigured: sarvamConfigured(),
+    payments: merchantTransactions()
+      .slice(0, 5)
+      .map((t) => ({
+        id: t.id,
+        amountInr: t.amountInr,
+        at: t.at,
+        transcript: t.tag?.transcript ?? null,
+        canTag: t.canTag,
+        secondsLeft: t.secondsLeft,
+        needsTag: needsTag(t.amountInr),
+      })),
+  };
+}
+
+/** The buyer sees only the shop they are paying. Nothing about the merchant's account. */
+export function customerSnapshot() {
+  const merchant = activeMerchant();
+  return {
+    epoch: store().epoch,
+    payee: { shopName: merchant.shopName, city: merchant.city, vpa: DEMO_PAYEE_VPA },
+  };
+}
+
+/** Bank and cybercrime side. Also the presenter's console. */
+export function bankSnapshot() {
+  const s = store();
+  const merchant = activeMerchant();
+  const hold = s.holds.at(-1) ?? null;
+  return {
+    epoch: s.epoch,
+    now: now().toISOString(),
+    simulatedDays: Math.round(s.clockOffsetMs / 86_400_000),
+    merchant: {
+      shopName: merchant.shopName,
+      city: merchant.city,
+      bankName: merchant.bankName,
+      accountLast4: merchant.accountLast4,
+    },
+    transactions: merchantTransactions().map((t) => ({
+      id: t.id,
+      amountInr: t.amountInr,
+      at: t.at,
+      payerVpaMasked: t.payerVpaMasked,
+      reported: s.reports.some((r) => r.txnId === t.id),
+      held: t.hold !== null,
+    })),
+    reports: s.reports,
+    hold,
+    grievance: hold ? (getGrievance(hold.id) ?? null) : null,
+    tracker: hold ? trackerStatus(hold.id) : null,
+  };
+}
+
+export function snapshotFor(role: Role = "merchant") {
+  switch (role) {
+    case "soundbox":
+      return soundboxSnapshot();
+    case "customer":
+      return customerSnapshot();
+    case "bank":
+      return bankSnapshot();
+    default:
+      return snapshot();
+  }
+}
+
 export type Snapshot = ReturnType<typeof snapshot>;
+export type SoundboxSnapshot = ReturnType<typeof soundboxSnapshot>;
+export type CustomerSnapshot = ReturnType<typeof customerSnapshot>;
+export type BankSnapshot = ReturnType<typeof bankSnapshot>;
 
 export type Packet =
   | { eligibility: Extract<Eligibility, { outcome: "eligible" }>; certificate: SaleCertificate; grievance: Draft }
@@ -89,20 +181,24 @@ function factsFor(holdId: string): DraftFacts {
   };
 }
 
-type Action =
+const VPA = /^[\w.-]{2,64}@[\w.-]{2,32}$/;
+
+type Action = { role?: Role } & (
   | { action: "state" }
   | { action: "reset" }
   | { action: "merchant"; merchantId: string }
-  | { action: "pay"; amountInr?: number }
+  | { action: "pay"; amountInr?: number; payerVpa?: string }
   | { action: "tag"; txnId: string; transcript: string; source?: SaleTag["source"] }
-  | { action: "hold"; txnId: string }
+  | { action: "report"; txnId: string }
+  | { action: "hold"; txnId: string; scope?: HoldScope }
   | { action: "explain"; holdId: string }
   | { action: "packet"; holdId: string; answers: MuleScreenAnswers }
   | { action: "filed"; holdId: string }
   | { action: "advance"; days: number }
-  | { action: "escalation"; holdId: string };
+  | { action: "escalation"; holdId: string }
+);
 
-/** Single entry point used by the API route. Returns fresh state with every reply. */
+/** Single entry point used by the API route. Returns fresh state for the asking screen. */
 export async function handle(input: Action) {
   let result: unknown = null;
 
@@ -116,10 +212,11 @@ export async function handle(input: Action) {
       setActiveMerchant(input.merchantId);
       break;
     case "pay": {
-      const txn = recordPayment(
-        input.amountInr ?? DEMO_PAYMENT.amountInr,
-        DEMO_PAYMENT.payerVpaMasked,
-      );
+      const payer =
+        typeof input.payerVpa === "string" && VPA.test(input.payerVpa)
+          ? input.payerVpa
+          : DEMO_PAYMENT.payerVpaMasked;
+      const txn = recordPayment(input.amountInr ?? DEMO_PAYMENT.amountInr, payer);
       result = { txn, needsTag: needsTag(txn.amountInr) };
       break;
     }
@@ -131,8 +228,15 @@ export async function handle(input: Action) {
         source: input.source ?? "voice",
       });
       break;
+    case "report":
+      result = reportFraud(input.txnId);
+      break;
     case "hold":
-      result = placeHold(input.txnId);
+      result = placeHold(
+        input.txnId,
+        "police",
+        input.scope === "debit_freeze" ? "debit_freeze" : "lien",
+      );
       break;
     case "explain": {
       const hold = getHold(input.holdId);
@@ -192,5 +296,6 @@ export async function handle(input: Action) {
       throw new Error("unknown action");
   }
 
-  return { result, state: snapshot() };
+  const role = ROLES.includes(input.role as Role) ? (input.role as Role) : "merchant";
+  return { result, state: snapshotFor(role) };
 }

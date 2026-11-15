@@ -201,3 +201,64 @@ describe("model prompt", () => {
     expect(prompt).toContain("IST");
   });
 });
+
+describe("multi-screen demo: no tipping off", () => {
+  it("a fraud report alone reaches only the bank screen", async () => {
+    const { handle } = await import("@backend/api");
+    const paid = await handle({ action: "pay", payerVpa: "vikram.demo@okdemo" });
+    const txnId = (paid.result as { txn: { id: string } }).txn.id;
+    const reported = await handle({ action: "report", txnId, role: "bank" });
+    const ackNo = (reported.result as { ackNo: string }).ackNo;
+
+    for (const role of ["merchant", "soundbox", "customer"] as const) {
+      const { state } = await handle({ action: "state", role });
+      const json = JSON.stringify(state);
+      expect(json).not.toContain(ackNo);
+      expect(json).not.toMatch(/"reports"|NCRP|ackNo/);
+    }
+    const bank = await handle({ action: "state", role: "bank" });
+    expect(JSON.stringify(bank.state)).toContain(ackNo);
+  });
+
+  it("the merchant sees the hold, with the report's reference, once it is placed", async () => {
+    const { handle } = await import("@backend/api");
+    const paid = await handle({ action: "pay" });
+    const txnId = (paid.result as { txn: { id: string } }).txn.id;
+    const report = (await handle({ action: "report", txnId })).result as { ackNo: string };
+    await handle({ action: "hold", txnId, scope: "debit_freeze" });
+    const { state } = await handle({ action: "state", role: "merchant" });
+    const hold = (state as { hold: { reference: string; scope: string } }).hold;
+    expect(hold.reference).toBe(report.ackNo);
+    expect(hold.scope).toBe("debit_freeze");
+  });
+
+  it("the buyer and the Soundbox never receive hold data", async () => {
+    const { handle } = await import("@backend/api");
+    const paid = await handle({ action: "pay" });
+    const txnId = (paid.result as { txn: { id: string } }).txn.id;
+    await handle({ action: "hold", txnId });
+    for (const role of ["customer", "soundbox"] as const) {
+      const { state } = await handle({ action: "state", role });
+      expect(JSON.stringify(state)).not.toMatch(/\bhold|freeze|lien|NCRP/i);
+    }
+  });
+
+  it("the payer handle from the customer screen is stored masked", async () => {
+    const { handle } = await import("@backend/api");
+    await handle({ action: "pay", payerVpa: "vikram.demo@okdemo" });
+    expect(JSON.stringify(store())).not.toContain("vikram.demo");
+  });
+
+  it("a hold defaults to a lien on the reported amount", () => {
+    const txn = recordPayment(826, "victim@okdemo");
+    const hold = placeHold(txn.id);
+    expect(hold.scope).toBe("lien");
+    expect(hold.heldAmountInr).toBe(826);
+  });
+
+  it("reset moves every screen to a new epoch", () => {
+    const before = store().epoch;
+    resetStore();
+    expect(store().epoch).toBe(before + 1);
+  });
+});
