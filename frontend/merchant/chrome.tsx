@@ -7,7 +7,7 @@ import { inr } from "../parts";
 export const BLUE = "#00BAF2";
 export const NAVY = "#002E6E";
 
-export type Tab = "home" | "payments" | "bills" | "soundbox";
+export type Tab = "home" | "payments" | "proofs" | "bills" | "soundbox";
 
 type Merchant = Snapshot["merchant"];
 type Hold = NonNullable<Snapshot["hold"]>;
@@ -84,6 +84,7 @@ export function AppBar({
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "home", label: "Home", icon: "⌂" },
   { id: "payments", label: "Payments", icon: "₹" },
+  { id: "proofs", label: "Proofs", icon: "🛡" },
   { id: "bills", label: "Bills", icon: "▤" },
   { id: "soundbox", label: "Soundbox", icon: "🔊" },
 ];
@@ -91,7 +92,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 /** Bottom tabs. Sticky inside the phone frame, so it also works on `/`. */
 export function BottomNav({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void }) {
   return (
-    <nav className="sticky bottom-0 z-20 grid grid-cols-4 border-t border-slate-200 bg-white">
+    <nav className="sticky bottom-0 z-20 grid grid-cols-5 border-t border-slate-200 bg-white">
       {TABS.map((t) => {
         const active = t.id === tab;
         return (
@@ -103,7 +104,7 @@ export function BottomNav({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void })
             style={{ color: active ? NAVY : "#64748b" }}
           >
             <span
-              className="grid h-7 w-12 place-items-center rounded-full text-base"
+              className="grid h-7 w-11 place-items-center rounded-full text-base"
               style={{ background: active ? "#E5F8FE" : "transparent" }}
               aria-hidden
             >

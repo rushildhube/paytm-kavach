@@ -12,6 +12,7 @@ import { buildUpiUri } from "./upi";
 import { AppBar, BottomNav, Card, NAVY, type Tab } from "./merchant/chrome";
 import { HoldAlert, MuleScreen, PacketView, TrackerCard, type Answers } from "./merchant/hold";
 import { CollectionCard, PaymentList, type Tagging } from "./merchant/payments";
+import { ProofsTab } from "./merchant/proofs";
 import { SoundboxTab } from "./merchant/soundbox";
 import { Disclaimer, DraftCard, inr } from "./parts";
 import { speak as speakText, stopSpeaking } from "./speech";
@@ -165,6 +166,30 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
   const cancelBill = (billId: string) => void call({ action: "bill-cancel", billId });
   const setLanguage = (language: string) => void call({ action: "settings", language });
 
+  /** Invoice photo/PDF for one payment (#22). Only its SHA-256 is kept server-side. */
+  const attachInvoice = async (txnId: string, file: File) => {
+    setError(null);
+    const form = new FormData();
+    form.set("txnId", txnId);
+    form.set("file", file);
+    try {
+      const res = await fetch("/api/invoice", { method: "POST", body: form });
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setError(
+          res.status === 413
+            ? "The file is larger than 2 MB."
+            : res.status === 429
+              ? "Too many uploads. Try again in a minute."
+              : (body.error ?? "Could not attach the invoice."),
+        );
+      }
+    } catch {
+      setError("Could not attach the invoice.");
+    }
+    await call({ action: "state" });
+  };
+
   // ---- demo controls -------------------------------------------------------
 
   const pay = async () => {
@@ -265,7 +290,7 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
                   <QuickAction icon="▤" label="Create bill" badge={openBills} onClick={() => goTo("bills")} />
                   <QuickAction icon="₹" label="Payments" onClick={() => goTo("payments")} />
                   <QuickAction icon="🔊" label="Soundbox" onClick={() => goTo("soundbox")} />
-                  <QuickAction icon="🛡" label="Kavach" onClick={() => goTo("soundbox")} />
+                  <QuickAction icon="🛡" label="Proofs" onClick={() => goTo("proofs")} />
                 </div>
               </Card>
               {!hold && (
@@ -327,6 +352,8 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
               )}
             />
           )}
+
+          {tab === "proofs" && <ProofsTab state={state} busy={busy} onAttach={attachInvoice} />}
 
           {tab === "soundbox" && <SoundboxTab state={state} busy={busy} onLanguage={setLanguage} />}
 
