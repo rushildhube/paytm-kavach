@@ -45,7 +45,7 @@ Each folder has its own `CLAUDE.md` describing what belongs there.
 
 - **Tagging threshold:** prompt for a voice tag on payments of ₹500 and above. Keep the value configurable.
 - **Tech stack:** Next.js full stack, TypeScript, one app at the repo root. Routes in `src/app` stay thin and import from `backend/`, `agent/`, `voice/` and `frontend/` (components) through path aliases, so the folder map above still holds.
-- **Voice:** the browser only records audio. Sarvam does speech to text and text to speech, called from server routes so the key never reaches the browser.
+- **Voice and LLM:** Sarvam for both. The browser only records audio; Sarvam does speech to text, text to speech and the drafting (`sarvam-105b`), all called from server routes so the one `SARVAM_API_KEY` never reaches the browser.
 - **Build order:** the end-to-end ₹826 demo path first, thin but complete.
 
 ## Caveat on facts

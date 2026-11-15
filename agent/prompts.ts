@@ -6,7 +6,7 @@ export const SYSTEM_PROMPT = `You write drafts for small Indian shopkeepers whos
 You are a drafting aid, not a lawyer. Your job is to put verified facts into clear, respectful words.
 
 Where the facts come from:
-- Everything about the payment, the hold and the sale is in the FACTS block. Use those values exactly. If something is not there, leave it out rather than guess.
+- Everything about the payment, the hold and the sale is in the FACTS block. Use those values exactly, including dates and times, which are already in Indian time. If something is not there, leave it out rather than guess.
 - Everything about law and procedure is in the RULES block. You may rely only on those entries. Never mention any other law, section, case, court, deadline or authority, even one you are sure exists, because this area changes often and an invented or outdated reference would hurt the shopkeeper.
 - When you rely on a rule, put its marker right after the sentence, written exactly as [rule:<id>]. Describe what the rule says in your own plain words; the marker is turned into the proper reference later. Describe a rule only as strongly as its summary and status allow: a "draft" or "contested" rule is not settled law.
 
@@ -23,6 +23,21 @@ const TASKS: Record<DraftKind, string> = {
   grievance: `Write the grievance letter in English from the shopkeeper to the branch manager of their bank. It should identify the hold and the payment, state that the payment was an ordinary sale and give the proof recorded at payment time, ask the bank to register the grievance and give the grievance ID, and ask for confirmation that only the reported amount is held. Mention that the sale certificate is attached. Keep it to one page.`,
   escalation: `Write the escalation letter in English from the shopkeeper to the next level named in FACTS. The original grievance has gone unanswered for the number of days given in FACTS. Say when it was filed, that no reply has come, restate the payment and the proof briefly, and ask for a decision. Mention the attachments. Keep it to one page.`,
 };
+
+/**
+ * Timestamps are stored in UTC. Give the model ready-to-print Indian time so
+ * it never has to convert (it printed UTC clock times when left to it).
+ */
+function istDates(_key: string, value: unknown): unknown {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(value)) return value;
+  return (
+    new Date(value).toLocaleString("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "Asia/Kolkata",
+    }) + " IST"
+  );
+}
 
 export function buildUserPrompt(
   kind: DraftKind,
@@ -41,7 +56,7 @@ ${TASKS[kind]}
 </task>
 
 <facts>
-${JSON.stringify(facts, null, 2)}
+${JSON.stringify(facts, istDates, 2)}
 </facts>
 
 <rules>

@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { DISCLAIMER, DISCLAIMER_HI } from "@backend/config";
 import { rulesFor, type Rule } from "@backend/rules";
 import type { HoldType } from "@backend/types";
@@ -7,6 +6,7 @@ import {
   type DraftFacts,
   type DraftKind,
 } from "@templates/drafts";
+import { chat, SarvamUnavailable } from "@voice/sarvam";
 import { checkDraft, renderCitations } from "./checks";
 import { buildUserPrompt, SYSTEM_PROMPT } from "./prompts";
 
@@ -15,50 +15,15 @@ export type Draft = {
   text: string;
   /** Rules the draft relies on, each with its source and last-checked date. */
   citations: Rule[];
-  generatedBy: "claude" | "template";
+  generatedBy: "sarvam" | "template";
   /** Why the model's version was not used, if it was not. */
   fallbackReason?: string;
   disclaimer: string;
 };
 
-const MODEL = "claude-opus-5-5";
-
-async function askClaude(
-  kind: DraftKind,
-  facts: DraftFacts,
-  rules: Rule[],
-  example: string,
-): Promise<string> {
-  const client = new Anthropic();
-  const response = await client.beta.messages.create(
-    {
-      model: MODEL,
-      max_tokens: 4000,
-      // If the model declines, the API retries on a fallback model.
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      output_config: { effort: "low" },
-      system: SYSTEM_PROMPT,
-      messages: [
-        { role: "user", content: buildUserPrompt(kind, facts, rules, example) },
-      ],
-    },
-    { timeout: 60_000, maxRetries: 1 },
-  );
-  if (response.stop_reason === "refusal") throw new Error("model declined");
-  if (response.stop_reason === "max_tokens") throw new Error("draft was cut off");
-  return response.content
-    .flatMap((b) => (b.type === "text" ? [b.text] : []))
-    .join("")
-    .trim();
-}
-
 function describe(err: unknown): string {
-  if (err instanceof Anthropic.AuthenticationError) return "no valid Anthropic credentials";
-  if (err instanceof Anthropic.RateLimitError) return "rate limited";
-  if (err instanceof Anthropic.APIConnectionError) return "could not reach the model";
-  if (err instanceof Anthropic.APIError) return `model API error ${err.status}`;
-  if (err instanceof Anthropic.AnthropicError) return "Anthropic credentials are not set";
+  if (err instanceof SarvamUnavailable) return "SARVAM_API_KEY is not set";
+  if (err instanceof Error && err.name === "TimeoutError") return "the model took too long";
   return err instanceof Error ? err.message : "unknown error";
 }
 
@@ -94,12 +59,12 @@ export async function makeDraft(
   if (!useModel) return finish(template, "template", "model disabled");
 
   try {
-    const raw = await askClaude(kind, facts, rules, template);
+    const raw = await chat(SYSTEM_PROMPT, buildUserPrompt(kind, facts, rules, template));
     const check = checkDraft(raw, amounts);
     if (!check.ok) {
       return finish(template, "template", `model draft rejected: ${check.problems.join("; ")}`);
     }
-    return finish(raw, "claude");
+    return finish(raw, "sarvam");
   } catch (err) {
     return finish(template, "template", describe(err));
   }

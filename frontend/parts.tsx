@@ -144,7 +144,7 @@ export function DraftCard({
           </span>
         </h3>
         <span className="text-[10px] text-slate-400">
-          {draft.generatedBy === "claude" ? "Worded by AI from verified facts" : "Standard wording"}
+          {draft.generatedBy === "sarvam" ? "Worded by AI from verified facts" : "Standard wording"}
         </span>
       </div>
       <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap rounded-lg bg-slate-50 p-3 font-sans text-[13px] leading-relaxed text-slate-800">

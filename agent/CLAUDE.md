@@ -21,4 +21,4 @@ The LLM layer. It turns verified facts into clear words in the merchant's langua
 - Not legal advice: outputs are drafts for the merchant to review and file themselves.
 - The agent has no tools that send, submit or contact third parties.
 - Pass the model only minimised data (masked buyer details, last four digits).
-- Use the latest Claude models by default; check the `claude-api` skill before writing API code.
+- Drafting uses Sarvam's chat model (`sarvam-105b`) through `voice/sarvam.ts`, the same key as speech. If the model fails or its draft fails the checks, fall back to the fixed wording in `templates/`.

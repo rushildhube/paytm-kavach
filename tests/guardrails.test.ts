@@ -186,3 +186,15 @@ describe("item parsing", () => {
     ]);
   });
 });
+
+describe("model prompt", () => {
+  it("gives the model Indian time, never raw UTC timestamps", async () => {
+    const { buildUserPrompt } = await import("@agent/prompts");
+    const txn = recordPayment(826, "victim@okdemo");
+    const hold = placeHold(txn.id);
+    const facts = { certificate: buildCertificate(hold.id, now()), ownerName: "R. Sharma" };
+    const prompt = buildUserPrompt("grievance", facts, allRules(), "");
+    expect(prompt).not.toMatch(/\d{4}-\d{2}-\d{2}T[\d:.]+Z/);
+    expect(prompt).toContain("IST");
+  });
+});

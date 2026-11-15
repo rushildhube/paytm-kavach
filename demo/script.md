@@ -12,12 +12,12 @@ Run `npm run dev` and open http://localhost:3000. Press **Reset demo** before ea
 | 6 | **मैंने इसे अपने बैंक में जमा कर दिया है** | "The merchant files it themselves. Kavach never sends anything." |
 | 7 | **Simulate day 15** | "No reply by the deadline, so the escalation draft is ready." |
 
-## Without API keys
+## Without the Sarvam key
 
 The demo runs fully offline:
 
-- No `SARVAM_API_KEY`: the mic button is disabled; use **Use recorded clip**. Nothing is spoken aloud.
-- No Anthropic credentials: drafts use the fixed wording in `templates/drafts.ts` and are labelled "Standard wording".
+- The mic button is disabled; use **Use recorded clip**. Nothing is spoken aloud.
+- Drafts use the fixed wording in `templates/drafts.ts` and are labelled "Standard wording".
 
 ## Showing the guardrails
 

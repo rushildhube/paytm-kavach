@@ -8,11 +8,11 @@ The merchant says what was sold as the payment arrives. If that payment is later
 
 ```bash
 npm install
-cp .env.example .env.local   # optional: add SARVAM_API_KEY and ANTHROPIC_API_KEY
+cp .env.example .env.local   # optional: add SARVAM_API_KEY (speech and drafting)
 npm run dev
 ```
 
-Open http://localhost:3000 and follow `demo/script.md`. Without keys the demo still runs, using a recorded clip and fixed-wording drafts.
+Open http://localhost:3000 and follow `demo/script.md`. Without the key the demo still runs, using a recorded clip and fixed-wording drafts.
 
 ```bash
 npm test          # guardrail and scenario tests
@@ -24,7 +24,7 @@ npm run typecheck
 | Folder | Holds |
 |---|---|
 | `backend/` | Append-only sale ledger, holds, eligibility, certificate, tracker |
-| `agent/` | Claude drafting and the checks every draft must pass |
+| `agent/` | Sarvam drafting and the checks every draft must pass |
 | `voice/` | Browser recording, Sarvam speech to text and text to speech, item parsing |
 | `rules/` | The rules table that all legal references come from |
 | `templates/` | Fixed-wording drafts used as fallback |

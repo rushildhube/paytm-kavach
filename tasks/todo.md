@@ -7,12 +7,11 @@ Goal: a thin but complete run of the demo script in `demo/CLAUDE.md`, in one Nex
 - Tagging threshold: ₹500 and above, configurable
 - Stack: Next.js full stack, TypeScript, app at repo root
 - Voice: browser records, Sarvam does STT and TTS via server routes
-- Drafting model: Claude, via server route
+- Drafting model: Sarvam `sarvam-105b`, via server route (changed from Claude on 2026-11-15 at the user's request)
 
 ## Needed from the user
 
-- [ ] Sarvam API key (`SARVAM_API_KEY` in `.env.local`)
-- [ ] Anthropic API key (`ANTHROPIC_API_KEY` in `.env.local`)
+- [x] Sarvam API key (`SARVAM_API_KEY` in `.env`), used for speech and drafting
 
 Without keys the app runs on the cached fallbacks in `demo/`.
 

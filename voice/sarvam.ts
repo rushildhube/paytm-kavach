@@ -1,12 +1,12 @@
 /**
- * Sarvam speech APIs, called from the server only so the key never
+ * Sarvam speech and chat APIs, called from the server only so the key never
  * reaches the browser. Field names follow docs.sarvam.ai (checked 2026-11-15).
  */
 const BASE = "https://api.sarvam.ai";
 
 export class SarvamUnavailable extends Error {}
 
-function key(): string {
+export function sarvamKey(): string {
   const k = process.env.SARVAM_API_KEY;
   if (!k) throw new SarvamUnavailable("SARVAM_API_KEY is not set");
   return k;
@@ -30,7 +30,7 @@ export async function speechToText(
   form.append("language_code", languageCode);
   const res = await fetch(`${BASE}/speech-to-text`, {
     method: "POST",
-    headers: { "api-subscription-key": key() },
+    headers: { "api-subscription-key": sarvamKey() },
     body: form,
     signal: AbortSignal.timeout(20_000),
   });
@@ -47,7 +47,7 @@ export async function textToSpeech(
   const res = await fetch(`${BASE}/text-to-speech`, {
     method: "POST",
     headers: {
-      "api-subscription-key": key(),
+      "api-subscription-key": sarvamKey(),
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -62,4 +62,36 @@ export async function textToSpeech(
   const json = (await res.json()) as { audios?: string[] };
   if (!json.audios?.length) throw new Error("Sarvam returned no audio");
   return Buffer.from(json.audios.join(""), "base64");
+}
+
+/** One chat completion from Sarvam's flagship model. Returns the reply text. */
+export async function chat(system: string, user: string): Promise<string> {
+  const res = await fetch(`${BASE}/v1/chat/completions`, {
+    method: "POST",
+    headers: {
+      "api-subscription-key": sarvamKey(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "sarvam-105b",
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      // null turns reasoning off. With it on, reasoning used the whole token
+      // budget and took 25s+; off, a draft comes back in a few seconds.
+      reasoning_effort: null,
+      max_tokens: 4096,
+      temperature: 0.2,
+    }),
+    signal: AbortSignal.timeout(60_000),
+  });
+  if (!res.ok) await fail(res);
+  const json = (await res.json()) as {
+    choices?: { finish_reason?: string; message?: { content?: string | null } }[];
+  };
+  const choice = json.choices?.[0];
+  if (choice?.finish_reason === "length") throw new Error("draft was cut off");
+  if (choice?.finish_reason === "content_filter") throw new Error("model declined");
+  return (choice?.message?.content ?? "").trim();
 }
