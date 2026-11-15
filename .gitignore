@@ -46,3 +46,6 @@ next-env.d.ts
 certificates
 # demo database (backend/db), with its WAL and shared-memory files
 /data/kavach.db*
+
+# Agent worktrees
+.claude/worktrees/
