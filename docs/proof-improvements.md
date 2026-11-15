@@ -35,6 +35,8 @@ Already ruled out: matching static-QR payments to bills by amount (guessing), an
 
 ### 1. The buyer sees the bill and approves it
 
+**Status: built (2026-11-15, decided on #19).** `bill-lookup` returns the bill's items, the customer screen shows them before the PIN, `pay` records `buyerApproved` only when the text it showed matches the bill, an approved bill is graded strong, and every bill QR carries the items in `tn` (`billNote`, 50 characters). Whether `tn` reaches the payer bank's statement is still unverified.
+
 **What:** When a buyer pays a bill QR, their payment screen shows the bill text ("1 ghee, 2 soap, ₹826") before the PIN. The payment record then shows the buyer saw and approved that description. The text can also travel in the UPI note field (`tn`), so it lands in the **payer's own bank record**, not just ours.
 
 **Why it matters:** The fraud report comes from the payer's side of the money. A description the payer's own app showed, and that sits in the payer bank's record, is the strongest single answer to "was this a real sale?" It is the closest thing to a receipt signed by both sides.

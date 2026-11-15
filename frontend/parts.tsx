@@ -139,7 +139,9 @@ export function CertificateCard({ cert }: { cert: SaleCertificate }) {
               {cert.saleTag.source === "typed"
                 ? "Paid without a bill; the merchant wrote this on the phone right after the payment"
                 : cert.saleTag.boundBy === "bill"
-                ? `From bill ${cert.saleTag.billId ?? ""}, created before the payment`
+                ? `From bill ${cert.saleTag.billId ?? ""}, created before the payment${
+                    cert.saleTag.buyerApproved ? "; the buyer's screen showed these items before the PIN" : ""
+                  }`
                 : `Matched by: ${
                     {
                       tap: "merchant picked this payment",

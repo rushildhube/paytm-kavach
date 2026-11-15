@@ -34,6 +34,8 @@ export type SaleCertificate = {
     /** How the tag was tied to this payment; absent on older records. */
     boundBy: SaleTag["boundBy"] | null;
     billId: string | null;
+    /** The buyer's payment screen showed this bill's items and amount before the PIN (#19). */
+    buyerApproved: boolean;
   } | null;
   /** An invoice file the merchant attached at payment time: its fingerprint only. Null if none. */
   invoice: {
@@ -95,6 +97,7 @@ export function buildCertificate(holdId: string, generatedAt: Date): SaleCertifi
           source: tag.source,
           boundBy: tag.boundBy ?? null,
           billId: tag.billId ?? null,
+          buyerApproved: tag.buyerApproved === true,
         }
       : null,
     invoice: invoice
@@ -124,6 +127,11 @@ export function buildCertificate(holdId: string, generatedAt: Date): SaleCertifi
         : tag?.boundBy
           ? [BOUND_BY_LINE[tag.boundBy]]
           : []),
+      ...(tag?.buyerApproved
+        ? [
+            "Before entering their PIN, the buyer's own payment screen showed this bill's items and amount, and the buyer paid it. The bill QR also carried the items in its UPI note; whether that note reaches the payer bank's own record depends on the payer's app and bank (not verified).",
+          ]
+        : []),
       ...(invoice
         ? [
             "An invoice file was attached by the merchant at payment time, before any hold. Only its SHA-256 fingerprint is kept, so the merchant's copy can be checked against it; its contents are the merchant's and are not verified by the payment company.",

@@ -264,6 +264,8 @@ const ActionSchema = z.discriminatedUnion("action", [
     amountInr: z.number().positive().max(MAX_PAYMENT_INR).optional(),
     payerVpa: z.string().max(100).optional(),
     billId: billId.optional(),
+    /** The bill text the buyer's screen showed before the PIN; must match the bill exactly (#19). */
+    approvedText: z.string().max(300).optional(),
   }),
   act("tag", {
     txnId: id,
@@ -379,6 +381,13 @@ export async function handle(raw: unknown) {
           if (input.amountInr !== undefined && Math.abs(input.amountInr - bill.amountInr) > 0.001) {
             throw new LedgerError("amount does not match the bill");
           }
+          // The buyer approved the bill only if their own screen showed this exact
+          // text before the PIN (#19). A mismatch means the screen was stale:
+          // refuse rather than record an approval of words the buyer never saw.
+          const approved = input.role === "customer" && input.approvedText !== undefined;
+          if (approved && input.approvedText !== bill.text) {
+            throw new LedgerError("this bill changed after it was shown; scan the QR again");
+          }
           const txn = recordPayment(bill.amountInr, payer, bill.id);
           const paid = settleBill(bill.id, bill.amountInr, txn.id);
           const tag = bill.text
@@ -389,6 +398,7 @@ export async function handle(raw: unknown) {
                 source: "bill",
                 boundBy: "bill",
                 billId: bill.id,
+                buyerApproved: approved,
               })
             : null;
           return { txn, needsTag: false, bill: paid, tag };
@@ -504,12 +514,15 @@ export async function handle(raw: unknown) {
       result = rows.dataPurposes();
       break;
     case "bill-lookup": {
-      // What a buyer's phone may see after scanning: shop and amount, nothing else.
+      // What a buyer's phone may see after scanning: shop, amount and what this
+      // bill says was sold, so the buyer approves it before the PIN (#19).
+      // Nothing about the merchant's account, other bills or other buyers.
       const bill = getBill(input.billId);
       result = {
         id: bill.id,
         amountInr: bill.amountInr,
         status: bill.status,
+        text: bill.text,
         // The shop that made the bill, not whichever merchant the demo is showing.
         shopName: getMerchant(bill.merchantId).shopName,
       };

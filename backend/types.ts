@@ -73,6 +73,8 @@ export type SaleTag = {
    */
   boundBy?: "bill" | "tap" | "only_open" | "amount" | "amount_and_name";
   billId?: string;
+  /** A bill tag whose items and amount the buyer's own payment screen showed before the PIN (#19). */
+  buyerApproved?: true;
 };
 
 /**

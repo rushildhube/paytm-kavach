@@ -5,7 +5,7 @@ import type { Snapshot } from "@backend/api";
 import { DEMO_PAYEE_VPA } from "@data/seed";
 import { inr, when } from "./parts";
 import { QrCode } from "./QrCode";
-import { buildUpiUri, MAX_UPI_AMOUNT_INR } from "./upi";
+import { billNote, buildUpiUri, MAX_UPI_AMOUNT_INR } from "./upi";
 import { DemoPill } from "./ui";
 import { useLive } from "./useLive";
 
@@ -117,7 +117,7 @@ export default function BillPanel() {
                 pn: shopName,
                 am: bill.amountInr,
                 tr: bill.id,
-                tn: `Bill ${bill.id}`,
+                tn: billNote(bill.id, bill.text),
               })}
               size={260}
               label={`UPI QR for bill ${bill.id}`}

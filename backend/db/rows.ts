@@ -43,6 +43,7 @@ type TagRow = {
   source: SaleTag["source"];
   bound_by: SaleTag["boundBy"] | null;
   bill_id: string | null;
+  buyer_approved: number;
 };
 type BillRow = {
   id: string;
@@ -111,6 +112,7 @@ const toTag = (r: TagRow): SaleTag =>
     source: r.source,
     ...(r.bound_by ? { boundBy: r.bound_by } : {}),
     ...(r.bill_id ? { billId: r.bill_id } : {}),
+    ...(r.buyer_approved ? { buyerApproved: true as const } : {}),
   });
 
 const toBill = (r: BillRow): Bill =>

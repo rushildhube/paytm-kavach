@@ -8,6 +8,8 @@ import type { Invoice, SaleTag } from "./types";
  * one payment was reported.
  *
  * Base level from the description:
+ * - strong: a bill made before the payment that the buyer's own payment
+ *   screen showed, items and amount, before the PIN (#19, item 1).
  * - good:  a bill made before the payment, or a voice tag bound by the
  *   merchant's tap or as the only open payment.
  * - basic: a voice tag matched by the spoken amount, or a description typed
@@ -32,15 +34,20 @@ export const PROOF_LEVELS: Record<ProofLevel, { en: string; hi: string }> = {
 };
 
 export function proofStrength(input: {
-  tag: Pick<SaleTag, "source" | "boundBy"> | null | undefined;
+  tag: Pick<SaleTag, "source" | "boundBy" | "buyerApproved"> | null | undefined;
   invoice: Pick<Invoice, "sha256"> | null | undefined;
 }): ProofStrength {
   const { tag, invoice } = input;
   const reasons: string[] = [];
-  let base: "good" | "basic" | "none" = "none";
+  let base: ProofLevel = "none";
 
   if (tag) {
-    if (tag.source === "bill" || tag.boundBy === "bill") {
+    if (tag.source === "bill" && tag.buyerApproved) {
+      base = "strong";
+      reasons.push(
+        "Bill made before the payment; the buyer's payment screen showed its items and amount before the PIN, and the buyer paid it.",
+      );
+    } else if (tag.source === "bill" || tag.boundBy === "bill") {
       base = "good";
       reasons.push("Bill made before the payment; the buyer paid that bill's QR.");
     } else if (tag.source === "typed") {
@@ -67,7 +74,13 @@ export function proofStrength(input: {
   }
 
   // The invoice was attached to this payment by id, so it lifts the level one step.
-  const level: ProofLevel = !invoice ? base : base === "good" ? "strong" : base === "basic" ? "good" : "basic";
+  const level: ProofLevel = !invoice
+    ? base
+    : base === "strong" || base === "good"
+      ? "strong"
+      : base === "basic"
+        ? "good"
+        : "basic";
   if (level === "none") reasons.push("Nothing was recorded for this sale at payment time.");
   return { level, reasons };
 }

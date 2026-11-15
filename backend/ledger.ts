@@ -72,6 +72,8 @@ export function recordSaleTag(input: {
   source: SaleTag["source"];
   boundBy?: SaleTag["boundBy"];
   billId?: string;
+  /** Only for a bill tag the buyer's payment screen showed before the PIN. */
+  buyerApproved?: boolean;
 }): SaleTag {
   return tx(() => {
     const txn = getTransaction(input.txnId);
@@ -91,8 +93,8 @@ export function recordSaleTag(input: {
       );
     }
     run(
-      `INSERT INTO sale_tags (txn_id, recorded_at, transcript, items, source, bound_by, bill_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO sale_tags (txn_id, recorded_at, transcript, items, source, bound_by, bill_id, buyer_approved)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       txn.id,
       at.toISOString(),
       transcript,
@@ -100,6 +102,8 @@ export function recordSaleTag(input: {
       input.source,
       input.boundBy ?? null,
       input.billId ?? null,
+      // Approval only means something for a bill the buyer paid.
+      input.buyerApproved && input.source === "bill" && input.billId ? 1 : 0,
     );
     const tag = getSaleTag(txn.id);
     if (!tag) throw new Error("sale tag was not stored");

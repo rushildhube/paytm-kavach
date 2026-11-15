@@ -3,7 +3,7 @@
  * hand so the result matches what real UPI apps produce and accept.
  *
  *   static shop QR: upi://pay?pa=<vpa>&pn=<shop>&cu=INR
- *   bill QR:        upi://pay?pa=<vpa>&pn=<shop>&am=826.00&cu=INR&tr=BILL-0001&tn=Bill%20BILL-0001
+ *   bill QR:        upi://pay?pa=<vpa>&pn=<shop>&am=826.00&cu=INR&tr=BILL-0001&tn=<billNote: id and items>
  *
  * Pure functions, no DOM: safe on the server, in the browser and in tests.
  */
@@ -97,6 +97,24 @@ export function parseUpiUri(text: string, expectedVpa: string): UpiParse {
   if (tn) payment.tn = tn.slice(0, 80);
 
   return { ok: true, payment };
+}
+
+/**
+ * Longest UPI note we write. Some UPI apps cut or refuse long notes; 50 is a
+ * conservative choice, not a verified limit.
+ */
+export const UPI_NOTE_MAX = 50;
+
+/**
+ * The note (`tn`) on a bill QR: the bill id and what the bill says was sold,
+ * so the buyer's app can show it and, where the app passes it on, it lands in
+ * the payer's own bank record (#19). Items only, never buyer details.
+ */
+export function billNote(billId: string, text: string | null | undefined): string {
+  const items = (text ?? "").replace(/\s+/g, " ").trim();
+  const note = items ? `${billId} · ${items}` : `Bill ${billId}`;
+  const chars = Array.from(note);
+  return chars.length <= UPI_NOTE_MAX ? note : chars.slice(0, UPI_NOTE_MAX - 1).join("") + "…";
 }
 
 /** Words for the scanner when a QR is refused. */

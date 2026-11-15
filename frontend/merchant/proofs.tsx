@@ -43,6 +43,7 @@ function proofText(t: Txn, shop: string, accountLast4: string): string {
       `Items: ${t.tag.items.map((i) => [i.quantity, i.unit, i.name].filter(Boolean).join(" ")).join(", ") || "-"}`,
       `Recorded by: ${t.tag.source}${t.tag.boundBy ? ` · matched by ${t.tag.boundBy}` : ""}`,
     );
+    if (t.tag.buyerApproved) lines.push("Buyer approved: the buyer's payment screen showed these items before the PIN");
   }
   if (t.invoice) {
     lines.push(`Invoice: ${t.invoice.kind}, ${t.invoice.sizeBytes} bytes, SHA-256 ${t.invoice.sha256}`);
@@ -154,6 +155,7 @@ function ProofCard({
                 <span>{secondsAfter(t)} s after payment</span>
                 <span>· {t.tag.source === "bill" ? "from bill" : t.tag.source === "voice" ? "by voice" : t.tag.source === "typed" ? "written on phone" : "recorded clip"}</span>
                 <BoundByChip boundBy={t.tag.boundBy} />
+                {t.tag.buyerApproved && <span>· ग्राहक ने देखकर भुगतान किया · buyer approved</span>}
               </div>
             </div>
           ) : (

@@ -13,8 +13,17 @@ import { useLive } from "./useLive";
 
 type Step = "home" | "scan" | "lookup" | "amount" | "pin" | "paying" | "done" | "refused";
 type Paid = { id: string; amountInr: number; at: string };
-/** What `bill-lookup` lets a buyer's phone see: nothing beyond shop, amount and status. */
-type BillView = { id: string; amountInr: number; status: "open" | "paid" | "cancelled"; shopName: string };
+/**
+ * What `bill-lookup` lets a buyer's phone see: shop, amount, status and what
+ * this bill says was sold, which the buyer approves before the PIN (#19).
+ */
+type BillView = {
+  id: string;
+  amountInr: number;
+  status: "open" | "paid" | "cancelled";
+  shopName: string;
+  text: string;
+};
 
 const PRIMARY = BRAND.primary;
 const NAVY = BRAND.navy;
@@ -106,8 +115,9 @@ export default function CustomerApp() {
 
   const pay = useCallback(async () => {
     setStep("paying");
+    // approvedText: the exact items this screen showed; the server refuses a mismatch.
     const body = bill
-      ? { action: "pay", billId: bill.id, amountInr: bill.amountInr, payerVpa: DEMO_PAYER_VPA }
+      ? { action: "pay", billId: bill.id, amountInr: bill.amountInr, payerVpa: DEMO_PAYER_VPA, approvedText: bill.text }
       : { action: "pay", amountInr: Number(amount), payerVpa: DEMO_PAYER_VPA };
     const reply = await call<{ txn: Paid }>(body);
     if (reply) {
@@ -269,6 +279,7 @@ export default function CustomerApp() {
                     Amount fixed by the shop&apos;s bill
                   </p>
                 )}
+                {bill?.text && <BillItems text={bill.text} />}
                 {error && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
                 <div className="mt-auto w-full">
                   <div className="mb-3 flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-sm">
@@ -308,6 +319,12 @@ export default function CustomerApp() {
                   <div className="font-semibold text-slate-900">₹{n.toFixed(2)}</div>
                 </div>
               </div>
+              {bill?.text && (
+                <div className="border-b border-slate-200 bg-white px-4 py-2 text-sm">
+                  <span className="text-slate-500">For: </span>
+                  <span className="font-medium text-slate-900">{bill.text}</span>
+                </div>
+              )}
               <div className="flex flex-col items-center p-6">
                 <div className="text-xs font-semibold tracking-widest text-slate-600">
                   {step === "paying" ? "PROCESSING…" : "ENTER 4-DIGIT UPI PIN"}
@@ -372,6 +389,12 @@ export default function CustomerApp() {
                 <span className="font-medium text-slate-800">{bill.id}</span>
               </div>
             )}
+            {bill?.text && (
+              <div className="mt-2 flex justify-between gap-4">
+                <span>For</span>
+                <span className="text-right font-medium text-slate-800">{bill.text}</span>
+              </div>
+            )}
             <div className="mt-2 flex justify-between">
               <span>From</span>
               <span className="font-medium text-slate-800">Demo Bank •••• 0042</span>
@@ -397,6 +420,17 @@ export default function CustomerApp() {
 
 function DemoBadge() {
   return <DemoPill />;
+}
+
+/** The shop's bill, shown before the PIN so the buyer approves what they are paying for (#19). */
+function BillItems({ text }: { text: string }) {
+  return (
+    <section className="mt-5 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left">
+      <div className="text-xs font-semibold text-slate-500">आप इसके पैसे दे रहे हैं · You are paying for</div>
+      <div className="mt-1 text-lg font-semibold text-slate-900">{text}</div>
+      <div className="mt-1 text-xs text-slate-500">Not what you bought? Don&apos;t pay; ask the shop.</div>
+    </section>
+  );
 }
 
 function QrIcon({ size = 28 }: { size?: number }) {

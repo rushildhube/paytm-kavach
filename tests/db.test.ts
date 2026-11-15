@@ -236,11 +236,17 @@ describe("bill-first payments (#15)", () => {
     expect(state.merchant.vpa).toBe(`sharmakirana@${BRAND.vpaDomain}`);
   });
 
-  it("bill-lookup shows the customer only id, amount, status and shop name", async () => {
+  it("bill-lookup shows the customer only id, amount, status, shop name and this bill's items (#19)", async () => {
     const bill = await call<Bill>({ action: "bill-create", amountInr: 826, text: "do kilo cheeni" });
     const seen = await call<Record<string, unknown>>({ action: "bill-lookup", billId: bill.id, role: "customer" });
-    expect(Object.keys(seen).sort()).toEqual(["amountInr", "id", "shopName", "status"]);
-    expect(seen).toEqual({ id: bill.id, amountInr: 826, status: "open", shopName: "Sharma Kirana Store" });
+    expect(Object.keys(seen).sort()).toEqual(["amountInr", "id", "shopName", "status", "text"]);
+    expect(seen).toEqual({
+      id: bill.id,
+      amountInr: 826,
+      status: "open",
+      shopName: "Sharma Kirana Store",
+      text: "do kilo cheeni",
+    });
   });
 });
 
