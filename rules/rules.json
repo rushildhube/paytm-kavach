@@ -1,0 +1,109 @@
+{
+  "_note": "Entries marked verified:false were taken from research notes and have NOT been checked against the primary source. They must be verified (source_url + last_checked filled in) before real use. The UI labels them as unverified.",
+  "rules": [
+    {
+      "id": "hold-limited-to-amount",
+      "instrument": "BNSS sections 168 and 94",
+      "status": "statute",
+      "summary": "A hold is limited to the amount that was reported, not the whole account balance.",
+      "applies_when": ["police_hold"],
+      "source_name": "Research notes (LiveLaw reporting on the Home Ministry procedure)",
+      "source_url": null,
+      "last_checked": null,
+      "verified": false
+    },
+    {
+      "id": "mha-procedure-2026",
+      "instrument": "Home Ministry procedure of 2 January 2026 (NCRP-CFCFRMS)",
+      "status": "administrative",
+      "summary": "Sets out a grievance ladder and deadlines for account holders whose money is held after a cyber-fraud report.",
+      "applies_when": ["police_hold"],
+      "source_name": "Research notes (Home Ministry SOP for NCRP-CFCFRMS)",
+      "source_url": null,
+      "last_checked": null,
+      "verified": false
+    },
+    {
+      "id": "grievance-via-bank",
+      "instrument": "Government grievance module",
+      "status": "administrative",
+      "summary": "The account holder's bank registers the grievance and issues a grievance ID; police review it online.",
+      "applies_when": ["police_hold"],
+      "source_name": "Research notes (reporting on the grievance module)",
+      "source_url": null,
+      "last_checked": null,
+      "verified": false
+    },
+    {
+      "id": "merchant-sale-details",
+      "instrument": "Home Ministry procedure of 2 January 2026 (NCRP-CFCFRMS)",
+      "status": "administrative",
+      "summary": "The procedure expects a merchant to supply details of the sale behind a reported payment.",
+      "applies_when": ["police_hold"],
+      "source_name": "Research notes (Home Ministry SOP for NCRP-CFCFRMS)",
+      "source_url": null,
+      "last_checked": null,
+      "verified": false
+    },
+    {
+      "id": "sc-directions-2026-08-04",
+      "instrument": "Supreme Court directions of 4 August 2026",
+      "status": "binding_direction",
+      "summary": "All states were directed to operationalise the grievance and money restoration modules and to dispose of account-freeze cases quickly. The grievance route does not bar other legal remedies.",
+      "applies_when": ["police_hold"],
+      "source_name": "Research notes (ANI and MediaNama reporting)",
+      "source_url": null,
+      "last_checked": null,
+      "verified": false
+    },
+    {
+      "id": "bnss-106",
+      "instrument": "BNSS section 106",
+      "status": "contested",
+      "summary": "Police seizure power. High Courts disagree on whether it allows freezing a bank account; the Supreme Court has not settled the question.",
+      "applies_when": [],
+      "source_name": "Research notes",
+      "source_url": null,
+      "last_checked": null,
+      "verified": false
+    },
+    {
+      "id": "bnss-107",
+      "instrument": "BNSS section 107",
+      "status": "statute",
+      "summary": "Attachment of property goes through a magistrate, with notice and a hearing.",
+      "applies_when": [],
+      "source_name": "Research notes",
+      "source_url": null,
+      "last_checked": null,
+      "verified": false
+    },
+    {
+      "id": "rbi-draft-bank-hold",
+      "instrument": "RBI draft KYC amendment of 11 September 2026",
+      "status": "draft",
+      "summary": "Draft only. A bank could itself hold a flagged transaction of ₹1,000 or more; the customer would have 20 days to explain, and the hold would lift at 60 days unless police step in.",
+      "applies_when": ["bank_hold"],
+      "source_name": "Research notes (ThePrint and MediaNama reporting)",
+      "source_url": null,
+      "last_checked": null,
+      "verified": false
+    }
+  ],
+  "ladder": {
+    "placeholder": true,
+    "note": "The 15-day figure is a demo placeholder. Replace with the actual deadlines from the Home Ministry procedure once verified.",
+    "steps": [
+      {
+        "level": 1,
+        "to": "Your bank branch (grievance registered through the bank)",
+        "escalate_after_days": 15
+      },
+      {
+        "level": 2,
+        "to": "The next officer on the grievance ladder",
+        "escalate_after_days": null
+      }
+    ]
+  }
+}
