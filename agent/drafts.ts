@@ -58,6 +58,7 @@ function describe(err: unknown): string {
   if (err instanceof Anthropic.RateLimitError) return "rate limited";
   if (err instanceof Anthropic.APIConnectionError) return "could not reach the model";
   if (err instanceof Anthropic.APIError) return `model API error ${err.status}`;
+  if (err instanceof Anthropic.AnthropicError) return "Anthropic credentials are not set";
   return err instanceof Error ? err.message : "unknown error";
 }
 
