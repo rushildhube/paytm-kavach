@@ -3,6 +3,7 @@ import { BrandLogo } from "../BrandLogo";
 import type { Snapshot } from "@backend/api";
 import type { SaleTag } from "@backend/types";
 import { inr } from "../parts";
+import { DemoPill } from "../ui";
 
 /** Brand palette for inline styles; the values live in ../brand.ts. */
 export const PRIMARY = BRAND.primary;
@@ -37,8 +38,8 @@ export function AppBar({
         <span className="text-[13px] font-semibold" style={{ color: NAVY }}>
           for Business
         </span>
-        <span className="ml-auto rounded-full border border-amber-400 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
-          Demo · Kavach
+        <span className="ml-auto">
+          <DemoPill label="Demo · Kavach" />
         </span>
       </div>
       <div className="flex items-center gap-3 px-4 pt-2 pb-3">
