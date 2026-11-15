@@ -37,3 +37,9 @@ Built 2026-11-15. The ₹826 flow runs end to end.
 - Not verified: live Sarvam speech and live Claude drafting (no keys were available), and the hold, packet and tracker screens were not clicked through in a browser.
 - Step 9 is partial: there are no cached audio files; offline mode uses the recorded-clip transcript and template drafts instead.
 - Rules in rules/rules.json are unverified research notes with no source URLs, and the 15-day escalation deadline is a placeholder.
+
+---
+
+# Plan: multi-screen demo (customer, Soundbox, merchant, bank)
+
+In progress on branch `feat/multi-screen-demo`. Full design, research and checklist: `docs/multi-screen-demo.md`.
