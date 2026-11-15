@@ -45,9 +45,16 @@ export function checkDraft(text: string, allowedAmounts: number[]): CheckResult 
   }
 
   const allowed = new Set(allowedAmounts);
-  for (const m of text.matchAll(/₹\s?([\d,]+(?:\.\d+)?)/g)) {
-    const n = Number(m[1].replace(/,/g, ""));
-    if (!allowed.has(n)) problems.push(`states an amount not in the facts: ₹${m[1]}`);
+  // Amounts however they are written: ₹826, Rs 826, 826 रुपये, 826 rupees.
+  const AMOUNTS = [
+    /(?:₹|Rs.?|INR)s?([d,]+(?:.d+)?)/gi,
+    /([d,]+(?:.d+)?)s?(?:रुपये|रुपए|rupees)/gi,
+  ];
+  for (const pattern of AMOUNTS) {
+    for (const m of text.matchAll(pattern)) {
+      const n = Number(m[1].replace(/,/g, ""));
+      if (!allowed.has(n)) problems.push(`states an amount not in the facts: ${m[0]}`);
+    }
   }
 
   return problems.length ? { ok: false, problems } : { ok: true, ruleIds };

@@ -130,6 +130,9 @@ describe("draft checks", () => {
 
   it("rejects an amount that is not in the facts", () => {
     expect(checkDraft("A hold of ₹8,26,000 was placed.", [826]).ok).toBe(false);
+    expect(checkDraft("A hold of Rs 8,260 was placed.", [826]).ok).toBe(false);
+    expect(checkDraft("8260 रुपये पर रोक लगी है।", [826]).ok).toBe(false);
+    expect(checkDraft("826 रुपये पर रोक लगी है, Rs 826 only.", [826]).ok).toBe(true);
   });
 
   it("renders markers as numbered references", () => {
