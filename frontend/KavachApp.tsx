@@ -132,32 +132,42 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
 
   // ---- hold flow -----------------------------------------------------------
 
+  // Drafts take seconds. If the demo is reset while one is in flight, its reply
+  // belongs to the old run (hold ids restart at reset), so it is dropped: the
+  // reply's epoch must still be the one the request was sent in.
+  const epoch = state?.epoch;
+  const sameRun = (reply: { state: { epoch: number } } | null, sentIn: number | undefined) =>
+    reply !== null && reply.state.epoch === sentIn;
+
   // A hold can arrive from the bank screen at any moment: explain it once.
   useEffect(() => {
     if (!hold || requested.current.explain === hold.id) return;
     requested.current.explain = hold.id;
+    const sentIn = epoch;
     void call<Draft>({ action: "explain", holdId: hold.id }).then((reply) => {
-      if (reply) {
+      if (reply && sameRun(reply, sentIn)) {
         setExplanation(reply.result);
         void speak(reply.result.text);
       }
     });
-  }, [hold, call, speak]);
+  }, [hold, call, speak, epoch]);
 
   // When the deadline passes without a reply, prepare the escalation once.
   const stage = state?.tracker?.stage;
   useEffect(() => {
     if (!hold || stage !== "escalation_due" || requested.current.escalation === hold.id) return;
     requested.current.escalation = hold.id;
+    const sentIn = epoch;
     void call<Draft>({ action: "escalation", holdId: hold.id }).then((reply) => {
-      if (reply) setEscalation(reply.result);
+      if (reply && sameRun(reply, sentIn)) setEscalation(reply.result);
     });
-  }, [hold, stage, call]);
+  }, [hold, stage, call, epoch]);
 
   const preparePacket = async () => {
     if (!hold || answers.lentAccount === null || answers.receivedForCommission === null) return;
+    const sentIn = epoch;
     const reply = await call<Packet>({ action: "packet", holdId: hold.id, answers });
-    if (reply) setPacket(reply.result);
+    if (reply && sameRun(reply, sentIn)) setPacket(reply.result);
   };
 
   // ---- bills and settings --------------------------------------------------
@@ -173,22 +183,24 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
     const form = new FormData();
     form.set("txnId", txnId);
     form.set("file", file);
+    let refusal: string | null = null;
     try {
       const res = await fetch("/api/invoice", { method: "POST", body: form });
       const body = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
-        setError(
+        refusal =
           res.status === 413
             ? "The file is larger than 2 MB."
             : res.status === 429
               ? "Too many uploads. Try again in a minute."
-              : (body.error ?? "Could not attach the invoice."),
-        );
+              : (body.error ?? "Could not attach the invoice.");
       }
     } catch {
-      setError("Could not attach the invoice.");
+      refusal = "Could not attach the invoice.";
     }
+    // Refresh first: a successful call clears the error, so set it afterwards.
     await call({ action: "state" });
+    if (refusal) setError(refusal);
   };
 
   // ---- demo controls -------------------------------------------------------
