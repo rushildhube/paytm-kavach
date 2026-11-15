@@ -118,6 +118,20 @@ export function CertificateCard({ cert }: { cert: SaleCertificate }) {
           <div className="text-base font-medium text-emerald-950">
             “{cert.saleTag.transcript}”
           </div>
+          {cert.saleTag.boundBy && (
+            <div className="mt-1 text-xs text-emerald-800">
+              {cert.saleTag.boundBy === "bill"
+                ? `From bill ${cert.saleTag.billId ?? ""}, created before the payment`
+                : `Matched by: ${
+                    {
+                      tap: "merchant picked this payment",
+                      only_open: "only open payment",
+                      amount: "spoken amount",
+                      amount_and_name: "spoken amount and name",
+                    }[cert.saleTag.boundBy]
+                  }`}
+            </div>
+          )}
           <ul className="mt-1 text-emerald-900">
             {cert.saleTag.items.map((it, i) => (
               <li key={i}>
