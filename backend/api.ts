@@ -9,7 +9,7 @@ import { spokenAmountsInr } from "@voice/amounts";
 import { parseSaleItems } from "@voice/parser";
 import { sarvamConfigured } from "@voice/sarvam";
 import { VOICE_LANGUAGES } from "@voice/languages";
-import { cancelBill, createBill, getBill, merchantBills, settleBill } from "./bills";
+import { cancelBill, createBill, getBill, merchantBills, ownBill, settleBill } from "./bills";
 import { buildCertificate, type SaleCertificate } from "./certificate";
 import {
   DISCLAIMER,
@@ -326,10 +326,7 @@ export async function handle(raw: unknown) {
         // Payment, bill status and tag are written together or not at all.
         const billId = input.billId;
         result = tx(() => {
-          const bill = getBill(billId);
-          if (bill.merchantId !== activeMerchant().id) {
-            throw new LedgerError("this bill belongs to another merchant");
-          }
+          const bill = ownBill(billId);
           if (bill.status !== "open") throw new LedgerError("this bill is not open");
           if (input.amountInr !== undefined && Math.abs(input.amountInr - bill.amountInr) > 0.001) {
             throw new LedgerError("amount does not match the bill");
@@ -416,6 +413,7 @@ export async function handle(raw: unknown) {
         id: bill.id,
         amountInr: bill.amountInr,
         status: bill.status,
+        // The shop that made the bill, not whichever merchant the demo is showing.
         shopName: getMerchant(bill.merchantId).shopName,
       };
       break;

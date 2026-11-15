@@ -50,13 +50,23 @@ export function getBill(id: string): Bill {
   return bill;
 }
 
+/**
+ * A bill the merchant's screen acts on, or that a payment settles, must be that
+ * merchant's own. Otherwise one shop's bill text would become the sale tag on
+ * another shop's payment: proof for a sale that never happened there.
+ */
+export function ownBill(id: string): Bill {
+  const bill = getBill(id);
+  if (bill.merchantId !== activeMerchant().id) {
+    throw new LedgerError("this bill belongs to another merchant");
+  }
+  return bill;
+}
+
 /** Only the merchant who made a bill may cancel it, and only while it is open. */
 export function cancelBill(id: string): Bill {
   return tx(() => {
-    const bill = getBill(id);
-    if (bill.merchantId !== activeMerchant().id) {
-      throw new LedgerError("this bill belongs to another merchant");
-    }
+    ownBill(id);
     const { changes } = run(
       "UPDATE bills SET status = 'cancelled' WHERE id = ? AND status = 'open'",
       id,
@@ -69,7 +79,7 @@ export function cancelBill(id: string): Bill {
 /** Called by the payment path. Refuses a paid/cancelled bill or a wrong amount. */
 export function settleBill(id: string, amountInr: number, txnId: string): Bill {
   return tx(() => {
-    const bill = getBill(id);
+    const bill = ownBill(id);
     if (bill.status !== "open") throw new LedgerError("this bill is not open");
     if (Math.abs(bill.amountInr - amountInr) > 0.001) {
       throw new LedgerError("amount does not match the bill");
