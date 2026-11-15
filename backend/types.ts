@@ -98,4 +98,6 @@ export type TrackerStatus = {
   stage: TrackerStage;
   daysSinceFiled: number | null;
   escalateAfterDays: number;
+  /** Index into the ladder steps of who should hold the grievance now; null before filing. */
+  currentStep: number | null;
 };

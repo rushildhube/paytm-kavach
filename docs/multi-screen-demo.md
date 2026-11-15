@@ -2,6 +2,11 @@
 
 Status: **in progress** on branch `feat/multi-screen-demo` (started 2026-11-15).
 Read this before touching the demo screens. It explains what we are building, why, and what is decided.
+Tracking issue: GitHub #4. Branch map and merge order: #6. Talk to the other agents through issues, not by editing each other's notes.
+
+## The solution, in one paragraph
+
+The screens recreate the problem; the solution lives on two of them. **The Soundbox captures proof at the moment of sale**: it announces the payment, asks "क्या बेचा?", and saves the shopkeeper's spoken answer against Paytm's own transaction id within 2 minutes, append-only. **The merchant app turns that proof into action when a hold lands**: a calm Hindi explanation, the mule screen, a sale certificate that separates Paytm's records from the merchant's words, a grievance draft citing only verified rules, and the tracker. The customer and bank screens exist only so judges can watch the problem happen and see that the proof was recorded before anyone reported anything.
 
 ## Why we are doing this
 
@@ -32,11 +37,13 @@ All four read the same in-memory server state (`backend/store.ts`) through `POST
 2. **Soundbox** announces it. The shopkeeper says "do kilo cheeni, ek tel" and the box confirms it.
 3. **Merchant** shows ₹826 with the 🛡 tag. All normal.
 4. **Bank**: the victim reports the payment. *The merchant and Soundbox screens show nothing.* That is the no-tipping-off guardrail.
-5. **Bank**: the bank applies a debit freeze. The merchant screen turns red.
+5. **Bank**: the bank holds ₹826 (or, to show over-reach, freezes the whole account). The merchant screen turns red.
 6. **Merchant**: explanation → two screening questions → certificate and grievance → "I filed it at my bank".
-7. **Bank**: simulate day 15 → the escalation draft appears on the merchant screen.
+7. **Bank**: simulate day 22 → the escalation draft appears on the merchant screen.
 
 ## How it works in real life (research, 2026-11-15)
+
+**Superseded in part by the verified rules on `verify/rules` (issue #2), now merged into this branch.** Per MHA SOP s.9.1, a single report means the bank holds the reported amount; suspending digital banking or seizing the account is for accounts reported multiple times. The ladder is: bank files within 7 days → police officer decides within 15 → District Grievance Officer within 15, so escalation is due on day 22. The notes below are kept for context only; `rules/rules.json` and `docs/sources.md` are authoritative.
 
 We searched for how UPI cyber-fraud freezes reach merchants. Summary, with confidence levels:
 
@@ -57,7 +64,8 @@ Sources:
 
 ## Decisions
 
-- **Hold scope is chosen on the bank console:** `debit_freeze` (default, the real-world pain) or `lien` (what the SOP reportedly intends). With a debit freeze, Kavach explains that the complaint concerns only ₹826, and the grievance asks the bank to narrow the freeze to a lien on ₹826. It never promises release.
+- **Hold scope is chosen on the bank console:** `lien` (default; what SOP s.9.1 prescribes for a single report) or `debit_freeze` (the over-reach case merchants report). With a debit freeze, Kavach explains that the complaint concerns only ₹826, and the grievance cites `hold-limited-to-amount` to ask for the restriction to be limited to ₹826. It never promises release.
+- **No separate "lien not full freeze" rule.** An unverified news-sourced entry was added and then dropped in the merge; the verified `hold-limited-to-amount` covers it.
 - **Report and hold are separate events.** `report` creates a bank-side complaint record; `hold` acts on it.
 - **Per-screen snapshots.** `snapshot(role)` returns different data per screen. The merchant and Soundbox never receive reports. The customer receives no merchant hold data at all.
 - **Reset epoch.** `store.epoch` goes up on every reset. Screens that see a new epoch return to their start state, and the Soundbox does not re-announce old payments.
@@ -76,12 +84,13 @@ Sources:
 
 - [x] Branch, research, this document
 - [x] Backend types: report, hold scope, reset epoch
-- [ ] `api.ts`: role-scoped snapshots; `report` action; `hold` with scope; `pay` with payer handle
-- [ ] Tests: no report data in merchant/soundbox snapshots before a hold; scope stored; epoch increments
-- [ ] `rules.json`: SOP lien entry (news source, unverified); templates and prompts handle `debit_freeze`
-- [ ] Shared polling hook in `frontend/`
-- [ ] `/customer`, `/soundbox`, `/bank`, `/merchant` pages
-- [ ] `dev:lan` script and `allowedDevOrigins`
+- [x] `api.ts`: role-scoped snapshots (`snapshotFor(role)`); `report` action; `hold` with scope; `pay` with payer handle; `lawWatch` kept on merchant and bank
+- [x] Tests: no report data in merchant/Soundbox/customer snapshots before a hold; no hold data on customer/Soundbox; scope stored; epoch increments; debit-freeze drafts pass the checks
+- [x] Templates and prompts handle `debit_freeze`
+- [x] Shared polling hook (`frontend/useLive.ts`) and speech helper with browser-voice fallback (`frontend/speech.ts`)
+- [x] `/customer`, `/soundbox`, `/bank`, `/merchant` pages (`/` unchanged)
+- [x] `dev:lan` script and `allowedDevOrigins`
+- [x] Merged `verify/rules` (verified rules, day-22 ladder, law watcher, voice MIME fix); bank console defaults to `lien` and has law-watcher controls
 - [ ] Try it on real phones: mic over HTTPS, iOS recording format, audio unlock
 - [ ] Rewrite `demo/script.md` for four screens; fix README wording (drafting is Sarvam now, not Claude)
 

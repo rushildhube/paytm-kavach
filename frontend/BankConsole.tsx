@@ -16,7 +16,7 @@ const btn =
  */
 export default function BankConsole() {
   const { state, error, busy, call } = useLive<BankSnapshot>("bank");
-  const [scope, setScope] = useState<HoldScope>("debit_freeze");
+  const [scope, setScope] = useState<HoldScope>("lien");
   const origin = useSyncExternalStore(
     () => () => {},
     () => window.location.origin,
@@ -116,16 +116,16 @@ export default function BankConsole() {
           </p>
           <fieldset className="mt-3 space-y-2" disabled={!report || !!hold}>
             <ScopeOption
+              checked={scope === "lien"}
+              onChange={() => setScope("lien")}
+              title={`Hold ${reportedTxn ? inr(reportedTxn.amountInr) : "the reported amount"} only`}
+              sub="Only the reported amount is blocked; the rest stays usable. The usual action for a single report."
+            />
+            <ScopeOption
               checked={scope === "debit_freeze"}
               onChange={() => setScope("debit_freeze")}
               title="Debit freeze on the whole account"
-              sub="No withdrawals at all. What merchants often face in practice."
-            />
-            <ScopeOption
-              checked={scope === "lien"}
-              onChange={() => setScope("lien")}
-              title={`Lien on ${reportedTxn ? inr(reportedTxn.amountInr) : "the reported amount"} only`}
-              sub="Only the disputed amount is blocked; the rest stays usable."
+              sub="No withdrawals at all. Shows the over-reach case, where the merchant asks for it to be narrowed."
             />
           </fieldset>
           <button
@@ -177,6 +177,27 @@ export default function BankConsole() {
           </button>
         </section>
       </div>
+
+      {/* law watcher */}
+      <section className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
+        <Step n={4} title="Law watcher" />
+        <p className="mt-2 text-sm text-slate-600">
+          Kavach watches official feeds and flags rules that may have changed. It never edits a
+          rule itself; a person re-reads the source.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button onClick={() => call({ action: "check-feeds" })} disabled={busy !== null} className={`${btn} border border-slate-300 text-slate-800`}>
+            Check feeds now
+          </button>
+          <button onClick={() => call({ action: "simulate-law-change" })} disabled={busy !== null} className={`${btn} bg-amber-500 text-black`}>
+            Simulate a change to the MHA procedure
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-slate-500">
+          {Object.keys(state.lawWatch.alertsByRule).length} rule(s) flagged ·{" "}
+          {state.lawWatch.lastRun ? `last check ${when(state.lawWatch.lastRun)}` : "not checked yet"}
+        </p>
+      </section>
 
       {/* links */}
       <section className="mt-6 rounded-2xl bg-white p-5 shadow-sm">

@@ -57,7 +57,7 @@ export function explanationHi({ certificate: c }: DraftFacts): string {
 function restrictionRequest(c: SaleCertificate): string {
   const amount = inr(c.hold.heldAmountInr);
   if (c.hold.scope === "debit_freeze") {
-    return `At present no withdrawals at all are allowed from my account, although the complaint concerns only this one payment of ${amount}. I request that the restriction be limited to a lien on the disputed amount of ${amount} [rule:lien-not-full-freeze], and that I be allowed to use the rest of my balance for my business [rule:hold-limited-to-amount].`;
+    return `At present no withdrawals at all are allowed from my account, although the complaint concerns only this one payment of ${amount}. As I understand the procedure, a single reported payment calls for a hold on the reported amount [rule:hold-limited-to-amount]. I request that the restriction be limited to ${amount}, and that I be allowed to use the rest of my balance for my business.`;
   }
   return `I also request confirmation that the hold applies only to the reported amount of ${amount} and not to the rest of my balance [rule:hold-limited-to-amount].`;
 }
@@ -80,9 +80,9 @@ That payment was received in the ordinary course of my business:
 - Received: ${when(c.transaction.at)}
 - Payer (masked): ${c.transaction.payerVpaMasked}
 
-${saleLine(c)} A sale certificate drawn from the payment company's records is attached. As I understand the procedure, a merchant is expected to supply the details of the sale behind a reported payment [rule:merchant-sale-details].
+${saleLine(c)} A sale certificate drawn from the payment company's records is attached as my explanation of this payment [rule:merchant-sale-details].
 
-I do not know the payer personally and had no reason to doubt the payment. I request that you register this grievance and give me the grievance ID [rule:grievance-via-bank], so that it can be reviewed under the grievance procedure [rule:mha-procedure-2026]. ${restrictionRequest(c)}
+I do not know the payer personally and had no reason to doubt the payment. I request that you file this grievance on the Grievance Redressal Module [rule:grievance-via-bank] within the time the procedure allows, and share its reference with me [rule:mha-procedure-2026]. ${restrictionRequest(c)} I also request the contact details of the police unit that ordered it [rule:police-contact-from-bank].
 
 I will provide any further document you need.
 
@@ -98,14 +98,15 @@ export function escalationLetter(f: DraftFacts): string {
   const c = f.certificate;
   return `To
 ${f.nextLevel ?? "The next officer on the grievance ladder"}
+Through: The Branch Manager, ${c.merchant.bankName}
 
-Subject: Escalation of unanswered grievance on a hold of ${inr(c.hold.heldAmountInr)} (reference ${c.hold.reference})
+Subject: Grievance on a hold of ${inr(c.hold.heldAmountInr)} still undecided (reference ${c.hold.reference})
 
 Sir/Madam,
 
 I run ${c.merchant.shopName} in ${c.merchant.city}. On ${f.filedAt ? when(f.filedAt) : "an earlier date"} I filed a grievance through ${c.merchant.bankName} about a hold of ${inr(c.hold.heldAmountInr)} on my account ending ${c.merchant.accountLast4}.
 
-${f.daysSinceFiled ?? "Several"} days have passed and I have not received a reply. I am therefore escalating the matter under the grievance procedure [rule:mha-procedure-2026]. I understand that the states have been directed to make this grievance system work and to dispose of such cases quickly [rule:sc-directions-2026-08-04].
+${f.daysSinceFiled ?? "Several"} days have passed and I have not been told of any decision. The grievance procedure sets time limits for the bank and the police officer, and passes an undecided grievance to the District Grievance Officer [rule:mha-procedure-2026]. All States have been directed to put this grievance system into operation [rule:sc-directions-2026-08-04].
 
 The payment in question (${c.transaction.id}, ${inr(c.transaction.amountInr)}, received ${when(c.transaction.at)}) was an ordinary sale at my shop. ${saleLine(c)} The sale certificate and my original grievance are attached.
 

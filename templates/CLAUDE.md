@@ -5,7 +5,7 @@ Fixed document layouts. Templates hold the structure and the mandatory wording; 
 ## What belongs here
 
 - **Sale certificate** — Paytm-record proof of a sale: transaction id, amount, date and time, settlement status, the sale tag captured at payment time, merchant identity with last four account digits.
-- **Grievance to the bank** — the representation the merchant files to get a grievance id, with slots for facts and for rule citations pulled from `rules/`.
+- **Grievance to the bank** — the representation the merchant gives their bank, which files it on the government Grievance Redressal Module, with slots for facts and for rule citations pulled from `rules/`.
 - **Escalation letter** — the next rung of the grievance ladder when a deadline passes without reply.
 - **Bank-hold explanation** — the merchant's response within the 20-day window for a bank-initiated hold (draft rule; label accordingly).
 - **Legal-aid referral** — the hand-off given when the mule screen fails.

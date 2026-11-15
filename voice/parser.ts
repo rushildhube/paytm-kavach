@@ -39,8 +39,9 @@ function toNumber(word: string): number | null {
 export function parseSaleItems(transcript: string): SaleItem[] {
   return transcript
     .toLowerCase()
-    .replace(/[।.!?]/g, " ")
-    .split(/,|\s+aur\s+|\s+और\s+|\s+and\s+/)
+    // Sentence ends separate items too ("1 तेल। 2 किलो चीनी"); a dot inside a
+    // number ("1.5 kilo") does not.
+    .split(/[,;।!?]|\.(?!\d)|\s+aur\s+|\s+और\s+|\s+and\s+/)
     .map((part) => part.trim().split(/\s+/).filter(Boolean))
     .filter((words) => words.length > 0)
     .map((words) => {

@@ -24,7 +24,8 @@ import {
   trackerStatus,
 } from "./holds";
 import { getSaleTag, needsTag, recordPayment, recordSaleTag } from "./ledger";
-import { ladder } from "./rules";
+import { escalationTarget, ladder } from "./rules";
+import { checkFeeds, clearDemoAlerts, ensureWatcher, injectDemoItem, watchStatus } from "./watcher";
 import {
   activeMerchant,
   advanceClock,
@@ -84,6 +85,7 @@ export function snapshot() {
     grievance: hold ? (getGrievance(hold.id) ?? null) : null,
     tracker: hold ? trackerStatus(hold.id) : null,
     ladder: ladder(),
+    lawWatch: watchStatus(),
     speechConfigured: sarvamConfigured(),
     disclaimer: DISCLAIMER,
     disclaimerHi: DISCLAIMER_HI,
@@ -149,6 +151,8 @@ export function bankSnapshot() {
     hold,
     grievance: hold ? (getGrievance(hold.id) ?? null) : null,
     tracker: hold ? trackerStatus(hold.id) : null,
+    ladder: ladder(),
+    lawWatch: watchStatus(),
   };
 }
 
@@ -196,10 +200,13 @@ type Action = { role?: Role } & (
   | { action: "filed"; holdId: string }
   | { action: "advance"; days: number }
   | { action: "escalation"; holdId: string }
+  | { action: "check-feeds" }
+  | { action: "simulate-law-change" }
 );
 
 /** Single entry point used by the API route. Returns fresh state for the asking screen. */
 export async function handle(input: Action) {
+  ensureWatcher();
   let result: unknown = null;
 
   switch (input.action) {
@@ -207,6 +214,19 @@ export async function handle(input: Action) {
       break;
     case "reset":
       resetStore();
+      clearDemoAlerts();
+      break;
+    case "check-feeds":
+      await checkFeeds();
+      break;
+    case "simulate-law-change":
+      // Demo: a made-up feed item, clearly labelled, run through the real matcher.
+      injectDemoItem({
+        title: "[Simulated] MHA revises the NCRP-CFCFRMS grievance procedure",
+        link: "",
+        published: null,
+        text: "Simulated item for the demo, not real news.",
+      });
       break;
     case "merchant":
       setActiveMerchant(input.merchantId);
@@ -279,7 +299,7 @@ export async function handle(input: Action) {
       if (!grievance || status.stage !== "escalation_due") {
         throw new Error("escalation is not due yet");
       }
-      const next = ladder().steps[1]?.to;
+      const next = escalationTarget().to;
       result = await makeDraft(
         "escalation",
         {

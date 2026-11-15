@@ -1,6 +1,7 @@
 import type { Draft } from "@agent/drafts";
 import type { SaleCertificate } from "@backend/certificate";
 import type { Rule } from "@backend/rules";
+import type { RuleAlert } from "@backend/watcher";
 
 export const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
@@ -28,7 +29,9 @@ const STATUS_LABEL: Record<Rule["status"], string> = {
   draft: "Draft, not in force",
 };
 
-export function Citations({ rules }: { rules: Rule[] }) {
+export type AlertsByRule = Record<string, RuleAlert[]>;
+
+export function Citations({ rules, alerts = {} }: { rules: Rule[]; alerts?: AlertsByRule }) {
   if (rules.length === 0) return null;
   return (
     <ol className="space-y-2 text-xs text-slate-600">
@@ -42,15 +45,35 @@ export function Citations({ rules }: { rules: Rule[] }) {
           </div>
           <div className="mt-0.5">{r.summary}</div>
           <div className="mt-1 text-[11px]">
-            Source: {r.source_name}.{" "}
+            Source:{" "}
+            {r.source_url ? (
+              <a href={r.source_url} target="_blank" rel="noreferrer" className="underline">
+                {r.source_name}
+              </a>
+            ) : (
+              r.source_name
+            )}
+            .{" "}
             {r.verified && r.last_checked ? (
-              <span>Last checked {r.last_checked}.</span>
+              <span>Checked {r.last_checked}.</span>
             ) : (
               <span className="font-medium text-amber-700">
                 Not yet verified against the primary source.
               </span>
             )}
           </div>
+          {alerts[r.id]?.map((a) => (
+            <div key={a.link || a.title} className="mt-1 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] text-amber-900">
+              <span className="font-semibold">Possibly changed, under review.</span> {a.feedName}:{" "}
+              {a.link ? (
+                <a href={a.link} target="_blank" rel="noreferrer" className="underline">
+                  {a.title}
+                </a>
+              ) : (
+                a.title
+              )}
+            </div>
+          ))}
         </li>
       ))}
     </ol>
@@ -120,10 +143,12 @@ export function DraftCard({
   title,
   draft,
   filename,
+  alerts,
 }: {
   title: string;
   draft: Draft;
   filename: string;
+  alerts?: AlertsByRule;
 }) {
   const full = `${draft.text}\n\n---\n${draft.disclaimer}\n`;
   const download = () => {
@@ -168,7 +193,7 @@ export function DraftCard({
         Read it, correct anything that is wrong, and file it at your bank yourself.
       </p>
       <div className="mt-3">
-        <Citations rules={draft.citations} />
+        <Citations rules={draft.citations} alerts={alerts} />
       </div>
     </section>
   );

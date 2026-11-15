@@ -35,7 +35,7 @@ Letter generators already exist (Wapas student prototype, lawyer/finance sites).
 | `voice/` | Voice sale tagging: speech to text, item parsing, tagging threshold |
 | `templates/` | Document templates: sale certificate, grievance, escalation |
 | `frontend/` | Merchant-facing demo UI |
-| `demo/` | Demo script, seeded scenario, "simulate day 15" controls |
+| `demo/` | Demo script, seeded scenario, "simulate day 22" controls |
 | `tests/` | Tests, including guardrail tests |
 | `tasks/` | `todo.md` (plan and progress) and `lessons.md` (corrections) |
 
@@ -47,6 +47,14 @@ Each folder has its own `CLAUDE.md` describing what belongs there.
 - **Tech stack:** Next.js full stack, TypeScript, one app at the repo root. Routes in `src/app` stay thin and import from `backend/`, `agent/`, `voice/` and `frontend/` (components) through path aliases, so the folder map above still holds.
 - **Voice and LLM:** Sarvam for both. The browser only records audio; Sarvam does speech to text, text to speech and the drafting (`sarvam-105b`), all called from server routes so the one `SARVAM_API_KEY` never reaches the browser.
 - **Build order:** the end-to-end ₹826 demo path first, thin but complete.
+
+## Working together
+
+Two people (and their agents) work on separate branches. Coordination lives in GitHub issues on `rushildhube/paytm-kavach`.
+
+- At the start of a session, run `gh issue list` and read the issues for the area you are touching.
+- When you change something another branch depends on (a schema, an API action, a snapshot field), comment on the matching issue.
+- Reference the issue in commits (`refs #N`) and close it when the work is merged to `main`.
 
 ## Caveat on facts
 
