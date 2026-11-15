@@ -24,6 +24,17 @@
       "verified": false
     },
     {
+      "id": "lien-not-full-freeze",
+      "instrument": "Home Ministry procedure of 2 January 2026 (NCRP-CFCFRMS), as reported",
+      "status": "administrative",
+      "summary": "Reported to make a lien on the disputed amount the normal action after a cyber-fraud report, and a freeze on the whole account the exception.",
+      "applies_when": ["police_hold"],
+      "source_name": "News reporting (Business Standard); the procedure itself has not been read yet",
+      "source_url": "https://www.business-standard.com/india-news/mha-sop-cyber-fraud-refunds-below-50000-no-court-order-126011500706_1.html",
+      "last_checked": "2026-11-15",
+      "verified": false
+    },
+    {
       "id": "grievance-via-bank",
       "instrument": "Government grievance module",
       "status": "administrative",

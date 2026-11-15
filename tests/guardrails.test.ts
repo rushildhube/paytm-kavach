@@ -262,3 +262,22 @@ describe("multi-screen demo: no tipping off", () => {
     expect(store().epoch).toBe(before + 1);
   });
 });
+
+describe("drafts for a full debit freeze", () => {
+  it("explains the freeze and asks for it to be narrowed, without new amounts or promises", async () => {
+    const txn = recordPayment(826, "victim@okdemo");
+    tag(txn.id, "दो किलो चीनी, एक तेल");
+    const hold = placeHold(txn.id, "police", "debit_freeze");
+    const facts = { certificate: buildCertificate(hold.id, now()), ownerName: "R. Sharma" };
+    expect(facts.certificate.hold.scope).toBe("debit_freeze");
+
+    const explanation = await makeDraft("explanation", facts, "police", { useModel: false });
+    expect(explanation.text).toContain("निकालने पर रोक");
+    expect(checkDraft(explanation.text, [826]).ok).toBe(true);
+
+    const grievance = await makeDraft("grievance", facts, "police", { useModel: false });
+    expect(grievance.text).toContain("lien on the disputed amount");
+    expect(grievance.citations.map((r) => r.id)).toContain("lien-not-full-freeze");
+    expect(checkDraft(grievance.text, [826]).ok).toBe(true);
+  });
+});
