@@ -22,6 +22,8 @@ type Item = {
   audio: Promise<AudioBuffer | null>;
   /** Said by the browser voice if it has no voice for `lang`. */
   fallback?: string;
+  /** A question to the shopkeeper: dropped, not replayed, once the mic opens. */
+  prompt: boolean;
   resolve: () => void;
 };
 
@@ -102,16 +104,26 @@ export function enqueue(
   lang: VoiceLanguage,
   useSarvam: boolean,
   fallback?: string,
+  { prompt = false }: { prompt?: boolean } = {},
 ): Promise<void> {
   return new Promise((resolve) => {
-    queue.push({ text, lang, audio: prefetch(text, lang, useSarvam), fallback, resolve });
+    queue.push({ text, lang, audio: prefetch(text, lang, useSarvam), fallback, prompt, resolve });
     void pump();
   });
 }
 
-/** Hold the queue (e.g. while the mic records). Fetching continues. */
+/**
+ * Hold the queue while the mic records. Cuts the phrase being spoken (it is
+ * said again on resume); fetching continues.
+ */
 export function pauseSpeech() {
   paused = true;
+  // The shopkeeper is already answering: drop pending questions.
+  queue = queue.filter((i) => {
+    if (i.prompt) i.resolve();
+    return !i.prompt;
+  });
+  interruptCurrent();
 }
 
 export function resumeSpeech() {
@@ -125,41 +137,73 @@ async function pump() {
   if (!item) return;
   const gen = generation;
   setPlaying(true);
+  let finished = false;
   try {
     const buf = await Promise.race([
       item.audio,
       new Promise<null>((r) => setTimeout(() => r(null), SARVAM_WAIT_MS)),
     ]);
-    if (gen !== generation) return;
-    if (buf && ctx) await playBuffer(buf);
-    else await browserSpeak(item.text, item.lang, item.fallback);
+    // Paused (mic went live) while the audio was on its way: do not start.
+    if (gen !== generation || paused) return;
+    const played = buf ? await playBuffer(buf) : false;
+    if (!played && !paused) await browserSpeak(item.text, item.lang, item.fallback);
+    // A phrase cut off by pauseSpeech is said again after the recording.
+    finished = !paused;
   } finally {
-    item.resolve();
-    if (gen === generation) {
+    if (gen !== generation) {
+      item.resolve();
+    } else {
+      if (finished || item.prompt) item.resolve();
+      else queue.unshift(item);
       setPlaying(false);
       void pump();
     }
   }
 }
 
-function playBuffer(buf: AudioBuffer): Promise<void> {
+/** Plays through the shared context. False if it could not play (context not running). */
+async function playBuffer(buf: AudioBuffer): Promise<boolean> {
+  const c = ctx;
+  if (!c) return false;
+  try {
+    await c.resume();
+  } catch {
+    // checked below
+  }
+  if (c.state !== "running") return false;
   return new Promise((resolve) => {
-    if (!ctx) return resolve();
-    void ctx.resume().catch(() => {});
-    const src = ctx.createBufferSource();
+    const src = c.createBufferSource();
     src.buffer = buf;
-    src.connect(ctx.destination);
+    src.connect(c.destination);
     source = src;
-    src.onended = () => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
       if (source === src) source = null;
-      resolve();
+      resolve(true);
     };
+    src.onended = finish;
+    // Never let one phrase hold up the queue.
+    setTimeout(finish, buf.duration * 1000 + 1500);
     try {
       src.start();
     } catch {
-      resolve();
+      finish();
     }
   });
+}
+
+function interruptCurrent() {
+  try {
+    source?.stop();
+  } catch {
+    // already stopped
+  }
+  source = null;
+  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+  }
 }
 
 function findVoice(tag: string): SpeechSynthesisVoice | undefined {
@@ -227,16 +271,9 @@ export function stopSpeaking() {
   const dropped = queue;
   queue = [];
   dropped.forEach((i) => i.resolve());
-  try {
-    source?.stop();
-  } catch {
-    // already stopped
-  }
-  source = null;
+  paused = false;
+  interruptCurrent();
   if (playing) setPlaying(false);
-  if (typeof window !== "undefined" && "speechSynthesis" in window) {
-    window.speechSynthesis.cancel();
-  }
 }
 
 /**

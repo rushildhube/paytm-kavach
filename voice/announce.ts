@@ -142,6 +142,27 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
   },
 };
 
+/** Short status words shown (not spoken) on the Soundbox panel. */
+type Status = { listening: string; understanding: string; saving: string };
+
+export const STATUS: Record<VoiceLanguage, Status> = {
+  "hi-IN": { listening: "सुन रहे हैं…", understanding: "समझ रहे हैं…", saving: "दर्ज कर रहे हैं…" },
+  "en-IN": { listening: "Listening…", understanding: "Understanding…", saving: "Saving…" },
+  "bn-IN": { listening: "শুনছি…", understanding: "বুঝছি…", saving: "সংরক্ষণ হচ্ছে…" },
+  "gu-IN": { listening: "સાંભળી રહ્યા છીએ…", understanding: "સમજી રહ્યા છીએ…", saving: "નોંધી રહ્યા છીએ…" },
+  "kn-IN": { listening: "ಕೇಳುತ್ತಿದೆ…", understanding: "ಅರ್ಥಮಾಡಿಕೊಳ್ಳುತ್ತಿದೆ…", saving: "ದಾಖಲಿಸುತ್ತಿದೆ…" },
+  "ml-IN": { listening: "കേൾക്കുന്നു…", understanding: "മനസ്സിലാക്കുന്നു…", saving: "രേഖപ്പെടുത്തുന്നു…" },
+  "mr-IN": { listening: "ऐकत आहे…", understanding: "समजत आहे…", saving: "नोंदवत आहे…" },
+  "od-IN": { listening: "ଶୁଣୁଛି…", understanding: "ବୁଝୁଛି…", saving: "ଲେଖୁଛି…" },
+  "pa-IN": { listening: "ਸੁਣ ਰਹੇ ਹਾਂ…", understanding: "ਸਮਝ ਰਹੇ ਹਾਂ…", saving: "ਦਰਜ ਕਰ ਰਹੇ ਹਾਂ…" },
+  "ta-IN": { listening: "கேட்கிறது…", understanding: "புரிந்துகொள்கிறது…", saving: "பதிவு செய்கிறது…" },
+  "te-IN": { listening: "వింటోంది…", understanding: "అర్థం చేసుకుంటోంది…", saving: "నమోదు చేస్తోంది…" },
+};
+
+export function statusFor(lang: VoiceLanguage): Status {
+  return STATUS[lang] ?? STATUS[DEFAULT_VOICE_LANGUAGE];
+}
+
 export function phrasesFor(lang: VoiceLanguage): Phrases {
   return PHRASES[lang] ?? PHRASES[DEFAULT_VOICE_LANGUAGE];
 }

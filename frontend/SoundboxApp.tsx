@@ -4,14 +4,15 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SoundboxSnapshot } from "@backend/api";
 import { DEMO_PAYMENT } from "@data/seed";
-import { announcePayment, phrasesFor } from "@voice/announce";
+import { announcePayment, phrasesFor, statusFor } from "@voice/announce";
 import { DEFAULT_VOICE_LANGUAGE, isVoiceLanguage, VOICE_LANGUAGES, type VoiceLanguage } from "@voice/languages";
 import { useRecorder } from "@voice/useRecorder";
 import { inr, when } from "./parts";
 import { enqueue, onSpeaking, pauseSpeech, prefetch, resumeSpeech, stopSpeaking, unlockAudio } from "./speech";
 import { useLive } from "./useLive";
 
-type Payment = SoundboxSnapshot["payments"][number];
+/** What a payment card needs. Candidates from tag-auto have the same shape. */
+type Card = Pick<SoundboxSnapshot["payments"][number], "id" | "amountInr" | "at" | "secondsLeft">;
 type Source = "voice" | "recorded_clip";
 type TagAutoResult =
   | { outcome: "bound"; txnId: string; method: string }
@@ -23,7 +24,7 @@ type Phase =
   | { kind: "transcribing" }
   | { kind: "saving"; transcript: string }
   | { kind: "saved"; transcript: string; txnId: string }
-  | { kind: "choose"; transcript: string; source: Source; candidates: string[] };
+  | { kind: "choose"; transcript: string; source: Source; candidates: Card[] };
 
 /** A tag is one short utterance. */
 const MAX_RECORD_MS = 7000;
@@ -73,7 +74,7 @@ export default function SoundboxApp() {
   const langName = VOICE_LANGUAGES.find((l) => l.code === lang)?.native ?? lang;
 
   const say = useCallback(
-    (text: string, fallback?: string) => enqueue(text, lang, sarvam, fallback),
+    (text: string, fallback?: string, prompt = false) => enqueue(text, lang, sarvam, fallback, { prompt }),
     [lang, sarvam],
   );
 
@@ -98,7 +99,7 @@ export default function SoundboxApp() {
       void say(announcePayment(p, lang), announcePayment(p, "en-IN"));
       if (p.canTag) ask = true;
     }
-    if (ask) void say(phrases.ask, english.ask);
+    if (ask) void say(phrases.ask, english.ask, true);
     setLastId(fresh.at(-1)!.id);
   }, [powered, state, say, lang, phrases, english]);
 
@@ -107,6 +108,12 @@ export default function SoundboxApp() {
     [state],
   );
   const done = useMemo(() => (state?.payments ?? []).filter((p) => !p.canTag), [state]);
+  // While choosing, also show candidates the snapshot's short list left out.
+  const cards: Card[] = useMemo(() => {
+    if (phase.kind !== "choose") return open;
+    const extra = phase.candidates.filter((c) => !open.some((p) => p.id === c.id));
+    return [...open, ...extra];
+  }, [open, phase]);
   const last = state?.payments.find((p) => p.id === lastId) ?? null;
 
   const finishSaved = useCallback(
@@ -121,13 +128,13 @@ export default function SoundboxApp() {
 
   /** Bind a transcript to the payment the shopkeeper tapped. */
   const tagTo = useCallback(
-    async (txnId: string, transcript: string, source: Source) => {
+    async (txnId: string, transcript: string, source: Source, candidates: Card[] = []) => {
       setPhase({ kind: "saving", transcript });
       const reply = await call({ action: "tag", txnId, transcript, source });
       if (reply) finishSaved(transcript, txnId);
       else {
         // Keep the words so another card can still be tapped.
-        setPhase((p) => (p.kind === "saving" ? { kind: "choose", transcript, source, candidates: [] } : p));
+        setPhase((p) => (p.kind === "saving" ? { kind: "choose", transcript, source, candidates } : p));
         resumeSpeech();
       }
     },
@@ -148,9 +155,9 @@ export default function SoundboxApp() {
       }
       if (result.outcome === "bound") return finishSaved(transcript, result.txnId);
       if (result.outcome === "ambiguous") {
-        setPhase({ kind: "choose", transcript, source, candidates: result.candidates.map((c) => c.id) });
+        setPhase({ kind: "choose", transcript, source, candidates: result.candidates });
         resumeSpeech();
-        void say(phrases.choose, english.choose);
+        void say(phrases.choose, english.choose, true);
         return;
       }
       setPhase({ kind: "idle" });
@@ -185,7 +192,8 @@ export default function SoundboxApp() {
   const onLevel = useCallback((level: number) => {
     meter.current?.style.setProperty("--lvl", level.toFixed(3));
   }, []);
-  const recorder = useRecorder(onClip, MAX_RECORD_MS, { onLevel, silenceMs: SILENCE_MS });
+  const onEmpty = useCallback(() => resumeSpeech(), []);
+  const recorder = useRecorder(onClip, MAX_RECORD_MS, { onLevel, silenceMs: SILENCE_MS, onEmpty });
 
   const startListening = useCallback(
     (forTxn: string | null) => {
@@ -222,9 +230,9 @@ export default function SoundboxApp() {
     pressedAt.current = 0;
   };
 
-  const onCard = (p: Payment) => {
+  const onCard = (p: Card) => {
     if (working || recorder.recording) return;
-    if (phase.kind === "choose") return void tagTo(p.id, phase.transcript, phase.source);
+    if (phase.kind === "choose") return void tagTo(p.id, phase.transcript, phase.source, phase.candidates);
     if (!sarvam) return void tagTo(p.id, DEMO_PAYMENT.spokenTag, "recorded_clip");
     startListening(p.id);
   };
@@ -235,12 +243,13 @@ export default function SoundboxApp() {
     void enqueue(phrases.poweredOn, lang, sarvam, english.poweredOn);
   };
 
+  const words = statusFor(lang);
   const status = recorder.recording
-    ? { big: "Listening…", small: "Speak now. Tap again or pause to finish." }
+    ? { big: words.listening, small: "Speak now. Tap again or pause to finish." }
     : phase.kind === "transcribing"
-      ? { big: "Understanding…", small: "Sarvam speech to text" }
+      ? { big: words.understanding, small: "Sarvam speech to text" }
       : phase.kind === "saving"
-        ? { big: "Saving…", small: `“${phase.transcript}”` }
+        ? { big: words.saving, small: `“${phase.transcript}”` }
         : phase.kind === "choose"
           ? { big: phrases.choose, small: `“${phase.transcript}” matches more than one payment. Tap the right one.` }
           : open.length > 0
@@ -397,14 +406,16 @@ export default function SoundboxApp() {
           )}
 
           {/* open payments */}
-          {open.length > 0 && (
+          {cards.length > 0 && (
             <section>
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                Waiting for a tag · {open.length}
+                Waiting for a tag · {cards.length}
               </h2>
               <ul className="space-y-2">
-                {open.map((p) => {
-                  const hot = phase.kind === "choose" && (phase.candidates.length === 0 || phase.candidates.includes(p.id));
+                {cards.map((p) => {
+                  const hot =
+                    phase.kind === "choose" &&
+                    (phase.candidates.length === 0 || phase.candidates.some((c) => c.id === p.id));
                   const listeningFor = recorder.recording && target === p.id;
                   return (
                     <li key={p.id}>

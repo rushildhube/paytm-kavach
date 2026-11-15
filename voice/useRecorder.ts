@@ -10,6 +10,8 @@ export type RecorderOptions = {
   onLevel?: (level: number) => void;
   /** Stop after this much quiet once speech was heard. 0 turns it off. */
   silenceMs?: number;
+  /** Called instead of `onClip` when the recording came out empty. */
+  onEmpty?: () => void;
 };
 
 /** RMS above this counts as speech. Tuned for a phone mic at arm's length. */
@@ -27,7 +29,7 @@ const SPEECH_LEVEL = 0.04;
 export function useRecorder(
   onClip: (clip: Blob) => void,
   maxMs = 7000,
-  { onLevel, silenceMs = 0 }: RecorderOptions = {},
+  { onLevel, silenceMs = 0, onEmpty }: RecorderOptions = {},
 ) {
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,10 +39,12 @@ export function useRecorder(
   const meterCtx = useRef<AudioContext | null>(null);
   const clipRef = useRef(onClip);
   const levelRef = useRef(onLevel);
+  const emptyRef = useRef(onEmpty);
   useEffect(() => {
     clipRef.current = onClip;
     levelRef.current = onLevel;
-  }, [onClip, onLevel]);
+    emptyRef.current = onEmpty;
+  }, [onClip, onLevel, onEmpty]);
 
   const stopMeter = useCallback(() => {
     if (frame.current !== null) cancelAnimationFrame(frame.current);
@@ -74,6 +78,7 @@ export function useRecorder(
         setRecording(false);
         const clip = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
         if (clip.size > 0) clipRef.current(clip);
+        else emptyRef.current?.();
       };
       recorder.current = rec;
       rec.start();

@@ -14,10 +14,13 @@ import { DEFAULT_VOICE_LANGUAGE, isVoiceLanguage, type VoiceLanguage } from "./l
  * - https://docs.sarvam.ai/api/api-guides-tutorials/text-to-speech/voices
  *   "shubh" (male) and "ishita" (female) are the top-rated v3 speakers.
  *
- * Every pair below was spoken live through bulbul:v3 on 2026-11-15 and
- * transcribed back with saaras:v3 verbatim: digits in the text ("826",
- * "1200", "826 ... 50") are read as number words in each language, so the
- * announcement text keeps digits.
+ * Live check, 2026-11-15: the real announcement (₹1250, bill 7, "what did
+ * you sell?") for all 11 language/speaker pairs below was spoken through
+ * bulbul:v3 and transcribed back with saaras:v3 verbatim. Every language
+ * read the digits as number words. One doubt: the Kannada transcript heard
+ * 1250 as "1200" (TTS or STT dropped the fifty); re-check by ear.
+ * bulbul:v4-flash also accepted "ritu_hi_customer" for Hindi, but v3 is kept
+ * so one model and one speaker list cover all 11 languages.
  */
 export const TTS_MODEL = "bulbul:v3";
 export const STT_MODEL = "saaras:v4";
