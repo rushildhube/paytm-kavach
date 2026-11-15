@@ -1,7 +1,7 @@
 import { DISCLAIMER } from "./config";
 import { getHold } from "./holds";
 import { getSaleTag, getTransaction } from "./ledger";
-import { store } from "./store";
+import { getMerchant } from "./store";
 import type { Hold, SaleItem } from "./types";
 
 export type SaleCertificate = {
@@ -38,8 +38,7 @@ export type SaleCertificate = {
 export function buildCertificate(holdId: string, generatedAt: Date): SaleCertificate {
   const hold = getHold(holdId);
   const txn = getTransaction(hold.txnId);
-  const merchant = store().merchants.find((m) => m.id === txn.merchantId);
-  if (!merchant) throw new Error("merchant not found");
+  const merchant = getMerchant(txn.merchantId);
   const tag = getSaleTag(txn.id);
 
   return {
