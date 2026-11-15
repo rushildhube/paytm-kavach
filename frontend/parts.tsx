@@ -2,6 +2,7 @@ import type { Draft } from "@agent/drafts";
 import type { SaleCertificate } from "@backend/certificate";
 import type { Rule } from "@backend/rules";
 import type { RuleAlert } from "@backend/watcher";
+import { BRAND } from "./brand";
 
 export const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
@@ -97,8 +98,8 @@ export function CertificateCard({ cert }: { cert: SaleCertificate }) {
         <span className="text-xs text-slate-500">{cert.certificateId}</span>
       </div>
 
-      <h4 className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-[#002E6E]">
-        From Paytm records
+      <h4 className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-brand-navy">
+        From {BRAND.name} records
       </h4>
       <dl className="divide-y divide-slate-100">
         <Row label="Shop" value={`${cert.merchant.shopName}, ${cert.merchant.city}`} />
@@ -163,7 +164,7 @@ export function CertificateCard({ cert }: { cert: SaleCertificate }) {
             <div className="mt-1 font-mono text-[11px] break-all">SHA-256 {cert.invoice.sha256}</div>
             <div className="mt-1 text-xs text-sky-800">
               Only the fingerprint is kept. The merchant&apos;s copy of the file can be checked against it;
-              its contents are not verified by Paytm.
+              its contents are not verified by {BRAND.name}.
             </div>
           </div>
         </div>

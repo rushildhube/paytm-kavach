@@ -57,7 +57,7 @@ export default function BillPanel() {
     <section className="w-full rounded-2xl bg-white p-5 shadow-sm">
       <header className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-[#002E6E]">बिल QR बनाएँ</h2>
+          <h2 className="text-xl font-bold text-brand-navy">बिल QR बनाएँ</h2>
           <p className="text-xs text-slate-500">Bill QR · proof of sale before the money moves</p>
         </div>
         <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">Demo</span>
@@ -67,7 +67,7 @@ export default function BillPanel() {
         <div className="mt-5 space-y-4">
           <label className="block">
             <span className="text-sm font-medium text-slate-700">राशि · Amount</span>
-            <div className="mt-1 flex items-center rounded-xl border-2 border-slate-200 px-3 focus-within:border-[#00BAF2]">
+            <div className="mt-1 flex items-center rounded-xl border-2 border-slate-200 px-3 focus-within:border-brand">
               <span className="text-2xl text-slate-500">₹</span>
               <input
                 value={amount}
@@ -85,14 +85,14 @@ export default function BillPanel() {
               value={text}
               onChange={(e) => setText(e.target.value.slice(0, 300))}
               placeholder="दो किलो चीनी, एक तेल"
-              className="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-lg outline-none focus:border-[#00BAF2]"
+              className="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-lg outline-none focus:border-brand"
             />
           </label>
           {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
           <button
             disabled={!amountOk || busy !== null}
             onClick={() => void create()}
-            className="w-full rounded-xl bg-[#00BAF2] py-4 text-lg font-semibold text-white disabled:opacity-40"
+            className="w-full rounded-xl bg-brand py-4 text-lg font-semibold text-white disabled:opacity-40"
           >
             {busy === "bill-create" ? "बन रहा है…" : `QR बनाएँ ${amountOk ? inr(n) : ""}`}
           </button>
@@ -109,7 +109,7 @@ export default function BillPanel() {
           <div className="text-4xl font-bold text-slate-900">{inr(bill.amountInr)}</div>
           {bill.text && <div className="mt-1 text-slate-700">{bill.text}</div>}
 
-          <div className={`relative mt-4 rounded-2xl border-4 p-2 ${bill.status === "open" ? "border-[#00BAF2]" : "border-slate-200"}`}>
+          <div className={`relative mt-4 rounded-2xl border-4 p-2 ${bill.status === "open" ? "border-brand" : "border-slate-200"}`}>
             <QrCode
               text={buildUpiUri({
                 pa: DEMO_PAYEE_VPA,
@@ -152,7 +152,7 @@ export default function BillPanel() {
                 रद्द करें · Cancel
               </button>
             )}
-            <button onClick={clear} className="flex-1 rounded-xl bg-[#002E6E] py-3 font-semibold text-white">
+            <button onClick={clear} className="flex-1 rounded-xl bg-brand-navy py-3 font-semibold text-white">
               नया बिल · New bill
             </button>
           </div>

@@ -1,7 +1,9 @@
+import { BRAND } from "@frontend/brand";
 import { DEFAULT_VOICE_LANGUAGE, type VoiceLanguage } from "./languages";
 
 /**
- * What the Soundbox says, per language. Modelled on the Paytm Soundbox
+ * What the Soundbox says, per language. The brand phrase ("on Saakshi")
+ * comes from frontend/brand.ts. Modelled on the Paytm Soundbox
  * announcement ("Paytm par ₹826 prapt hue"); the exact wording of the real
  * device was not confirmed from a primary source. Non-Hindi phrases were
  * written for the demo and need a native speaker's check before a pitch.
@@ -11,7 +13,7 @@ import { DEFAULT_VOICE_LANGUAGE, type VoiceLanguage } from "./languages";
  * which some voices read digit by digit.
  */
 type Phrases = {
-  /** "Received ₹{amount} on Paytm". */
+  /** "Received ₹{amount} on {brand}". */
   received: (amount: string) => string;
   /** Word for paise, used when the amount has a fractional part. */
   paise: string;
@@ -31,7 +33,7 @@ type Phrases = {
 
 export const PHRASES: Record<VoiceLanguage, Phrases> = {
   "hi-IN": {
-    received: (a) => `पेटीएम पर ${a} प्राप्त हुए।`,
+    received: (a) => `${BRAND.spokenOn["hi-IN"]} ${a} प्राप्त हुए।`,
     rupees: "रुपये",
     paise: "पैसे",
     billPaid: (b) => `बिल नंबर ${b} का भुगतान हो गया।`,
@@ -41,7 +43,7 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     poweredOn: "साउंडबॉक्स चालू है।",
   },
   "en-IN": {
-    received: (a) => `Received ${a} on Paytm.`,
+    received: (a) => `Received ${a} ${BRAND.spokenOn["en-IN"]}.`,
     rupees: "rupees",
     paise: "paise",
     billPaid: (b) => `Bill number ${b} is paid.`,
@@ -51,7 +53,7 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     poweredOn: "Soundbox is on.",
   },
   "bn-IN": {
-    received: (a) => `পেটিএম-এ ${a} পাওয়া গেছে।`,
+    received: (a) => `${BRAND.spokenOn["bn-IN"]} ${a} পাওয়া গেছে।`,
     rupees: "টাকা",
     paise: "পয়সা",
     billPaid: (b) => `বিল নম্বর ${b} পরিশোধ হয়েছে।`,
@@ -61,7 +63,7 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     poweredOn: "সাউন্ডবক্স চালু হয়েছে।",
   },
   "gu-IN": {
-    received: (a) => `પેટીએમ પર ${a} મળ્યા.`,
+    received: (a) => `${BRAND.spokenOn["gu-IN"]} ${a} મળ્યા.`,
     rupees: "રૂપિયા",
     paise: "પૈસા",
     billPaid: (b) => `બિલ નંબર ${b} ચૂકવાઈ ગયું.`,
@@ -71,7 +73,7 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     poweredOn: "સાઉન્ડબોક્સ ચાલુ છે.",
   },
   "kn-IN": {
-    received: (a) => `ಪೇಟಿಎಂನಲ್ಲಿ ${a} ಸ್ವೀಕರಿಸಲಾಗಿದೆ.`,
+    received: (a) => `${BRAND.spokenOn["kn-IN"]} ${a} ಸ್ವೀಕರಿಸಲಾಗಿದೆ.`,
     rupees: "ರೂಪಾಯಿ",
     paise: "ಪೈಸೆ",
     billPaid: (b) => `ಬಿಲ್ ಸಂಖ್ಯೆ ${b} ಪಾವತಿಯಾಗಿದೆ.`,
@@ -81,7 +83,7 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     poweredOn: "ಸೌಂಡ್‌ಬಾಕ್ಸ್ ಆನ್ ಆಗಿದೆ.",
   },
   "ml-IN": {
-    received: (a) => `പേടിഎമ്മിൽ ${a} ലഭിച്ചു.`,
+    received: (a) => `${BRAND.spokenOn["ml-IN"]} ${a} ലഭിച്ചു.`,
     rupees: "രൂപ",
     paise: "പൈസ",
     billPaid: (b) => `ബിൽ നമ്പർ ${b} അടച്ചു.`,
@@ -91,7 +93,7 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     poweredOn: "സൗണ്ട്ബോക്സ് ഓണാണ്.",
   },
   "mr-IN": {
-    received: (a) => `पेटीएमवर ${a} मिळाले.`,
+    received: (a) => `${BRAND.spokenOn["mr-IN"]} ${a} मिळाले.`,
     rupees: "रुपये",
     paise: "पैसे",
     billPaid: (b) => `बिल क्रमांक ${b} भरले गेले.`,
@@ -101,7 +103,7 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     poweredOn: "साउंडबॉक्स चालू आहे.",
   },
   "od-IN": {
-    received: (a) => `ପେଟିଏମରେ ${a} ମିଳିଲା।`,
+    received: (a) => `${BRAND.spokenOn["od-IN"]} ${a} ମିଳିଲା।`,
     rupees: "ଟଙ୍କା",
     paise: "ପଇସା",
     billPaid: (b) => `ବିଲ ନମ୍ବର ${b} ପଇଠ ହେଲା।`,
@@ -111,7 +113,7 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     poweredOn: "ସାଉଣ୍ଡବକ୍ସ ଚାଲୁ ଅଛି।",
   },
   "pa-IN": {
-    received: (a) => `ਪੇਟੀਐਮ 'ਤੇ ${a} ਪ੍ਰਾਪਤ ਹੋਏ।`,
+    received: (a) => `${BRAND.spokenOn["pa-IN"]} ${a} ਪ੍ਰਾਪਤ ਹੋਏ।`,
     rupees: "ਰੁਪਏ",
     paise: "ਪੈਸੇ",
     billPaid: (b) => `ਬਿੱਲ ਨੰਬਰ ${b} ਦਾ ਭੁਗਤਾਨ ਹੋ ਗਿਆ।`,
@@ -121,7 +123,7 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     poweredOn: "ਸਾਊਂਡਬਾਕਸ ਚਾਲੂ ਹੈ।",
   },
   "ta-IN": {
-    received: (a) => `பேடிஎம்மில் ${a} பெறப்பட்டது.`,
+    received: (a) => `${BRAND.spokenOn["ta-IN"]} ${a} பெறப்பட்டது.`,
     rupees: "ரூபாய்",
     paise: "பைசா",
     billPaid: (b) => `பில் எண் ${b} செலுத்தப்பட்டது.`,
@@ -131,7 +133,7 @@ export const PHRASES: Record<VoiceLanguage, Phrases> = {
     poweredOn: "சவுண்ட்பாக்ஸ் இயங்குகிறது.",
   },
   "te-IN": {
-    received: (a) => `పేటీఎంలో ${a} అందాయి.`,
+    received: (a) => `${BRAND.spokenOn["te-IN"]} ${a} అందాయి.`,
     rupees: "రూపాయలు",
     paise: "పైసలు",
     billPaid: (b) => `బిల్లు నంబర్ ${b} చెల్లించబడింది.`,

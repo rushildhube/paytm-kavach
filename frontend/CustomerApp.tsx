@@ -4,6 +4,8 @@ import { useCallback, useState } from "react";
 import type { CustomerSnapshot } from "@backend/api";
 import { DEMO_PAYER_VPA, DEMO_PAYMENT } from "@data/seed";
 import { inr, when } from "./parts";
+import { BrandLogo } from "./BrandLogo";
+import { BRAND } from "./brand";
 import { QrScanner } from "./QrScanner";
 import { parseUpiUri, UPI_REJECT_TEXT } from "./upi";
 import { useLive } from "./useLive";
@@ -13,8 +15,8 @@ type Paid = { id: string; amountInr: number; at: string };
 /** What `bill-lookup` lets a buyer's phone see: nothing beyond shop, amount and status. */
 type BillView = { id: string; amountInr: number; status: "open" | "paid" | "cancelled"; shopName: string };
 
-const PAYTM_BLUE = "#00BAF2";
-const PAYTM_NAVY = "#002E6E";
+const PRIMARY = BRAND.primary;
+const NAVY = BRAND.navy;
 
 /**
  * The buyer's phone: Paytm-style Scan & Pay. The camera reads a real UPI QR
@@ -145,31 +147,30 @@ export default function CustomerApp() {
       {step === "home" && (
         <>
           <header className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E6F7FD] text-sm font-bold text-[#002E6E]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-tint text-sm font-bold text-brand-navy">
               V
             </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/paytm-logo.svg" alt="Paytm" className="h-6 w-auto" />
+            <BrandLogo size={24} />
             <DemoBadge />
           </header>
           <main className="flex-1 bg-[#F5F7FA] p-4">
             <section className="rounded-2xl bg-white p-4 shadow-sm">
-              <h2 className="text-sm font-bold text-[#002E6E]">UPI Money Transfer</h2>
+              <h2 className="text-sm font-bold text-brand-navy">UPI Money Transfer</h2>
               <div className="mt-4 grid grid-cols-4 gap-2 text-center text-[11px] leading-tight text-slate-700">
                 <button onClick={startScan} className="flex flex-col items-center gap-1.5">
-                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#002E6E] text-white shadow">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-navy text-white shadow">
                     <QrIcon />
                   </span>
-                  <span className="font-semibold text-[#002E6E]">Scan &amp; Pay</span>
+                  <span className="font-semibold text-brand-navy">Scan &amp; Pay</span>
                 </button>
                 {["To Mobile or Contact", "To Bank A/c or UPI ID", "To Self A/c"].map((l) => (
                   <div key={l} className="flex flex-col items-center gap-1.5 opacity-50">
-                    <span className="h-14 w-14 rounded-2xl bg-[#E6F7FD]" />
+                    <span className="h-14 w-14 rounded-2xl bg-brand-tint" />
                     <span>{l}</span>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 flex justify-between border-t border-slate-100 pt-3 text-xs font-semibold text-[#00BAF2]">
+              <div className="mt-4 flex justify-between border-t border-slate-100 pt-3 text-xs font-semibold text-brand">
                 <span className="opacity-50">Balance &amp; History</span>
                 <span className="opacity-50">Receive Money</span>
               </div>
@@ -182,7 +183,7 @@ export default function CustomerApp() {
             <button
               onClick={startScan}
               className="flex items-center gap-2 rounded-full px-7 py-3.5 font-semibold text-white shadow-lg active:scale-95"
-              style={{ background: PAYTM_BLUE }}
+              style={{ background: PRIMARY }}
             >
               <QrIcon size={22} /> Scan
             </button>
@@ -192,7 +193,7 @@ export default function CustomerApp() {
 
       {step === "lookup" && (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-slate-500">
-          <span className="h-10 w-10 animate-spin rounded-full border-4 border-[#00BAF2] border-t-transparent" />
+          <span className="h-10 w-10 animate-spin rounded-full border-4 border-brand border-t-transparent" />
           Fetching bill…
         </div>
       )}
@@ -207,7 +208,7 @@ export default function CustomerApp() {
           <button
             onClick={restart}
             className="mt-auto w-full rounded-xl py-4 text-lg font-semibold text-white"
-            style={{ background: PAYTM_NAVY }}
+            style={{ background: NAVY }}
           >
             Back to home
           </button>
@@ -252,7 +253,7 @@ export default function CustomerApp() {
                   )}
                 </div>
                 {bill && (
-                  <p className="mt-2 rounded-full bg-[#E6F7FD] px-3 py-1 text-xs font-medium text-[#002E6E]">
+                  <p className="mt-2 rounded-full bg-brand-tint px-3 py-1 text-xs font-medium text-brand-navy">
                     Amount fixed by the shop&apos;s bill
                   </p>
                 )}
@@ -269,7 +270,7 @@ export default function CustomerApp() {
                       setStep("pin");
                     }}
                     className="w-full rounded-xl py-4 text-lg font-semibold text-white disabled:opacity-40"
-                    style={{ background: PAYTM_BLUE }}
+                    style={{ background: PRIMARY }}
                   >
                     Pay {amountOk ? inr(n) : ""}
                   </button>
@@ -319,7 +320,7 @@ export default function CustomerApp() {
                     className={`py-5 text-2xl font-medium active:bg-slate-100 ${
                       k === "✓" ? "text-white disabled:opacity-40" : "text-slate-900"
                     }`}
-                    style={k === "✓" ? { background: PAYTM_NAVY } : undefined}
+                    style={k === "✓" ? { background: NAVY } : undefined}
                     aria-label={k === "⌫" ? "Delete" : k === "✓" ? "Submit PIN" : k}
                   >
                     {k}
@@ -365,12 +366,11 @@ export default function CustomerApp() {
             </div>
           </div>
           <div className="mt-auto flex w-full flex-col items-center gap-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/paytm-logo.svg" alt="Paytm" className="h-5 w-auto opacity-80" />
+            <BrandLogo size={20} className="opacity-80" />
             <button
               onClick={restart}
               className="w-full rounded-xl py-4 font-semibold text-white"
-              style={{ background: PAYTM_NAVY }}
+              style={{ background: NAVY }}
             >
               Done
             </button>

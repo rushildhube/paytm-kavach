@@ -1,6 +1,6 @@
 import type { Snapshot } from "@backend/api";
 import { inr, when } from "../parts";
-import { BoundByChip, Card, NAVY } from "./chrome";
+import { BoundByChip, Card, DEEP, NAVY, PRIMARY } from "./chrome";
 
 type Txn = Snapshot["transactions"][number];
 
@@ -44,7 +44,7 @@ export function PaymentRow({
       <div className="flex items-start gap-3">
         <div
           className={`grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold ${
-            t.hold ? "bg-red-100 text-red-700" : "bg-[#E5F8FE]"
+            t.hold ? "bg-red-100 text-red-700" : "bg-brand-tint"
           }`}
           style={t.hold ? undefined : { color: NAVY }}
           aria-hidden
@@ -96,7 +96,7 @@ function TagControls({ t, tagging }: { t: Txn; tagging: Tagging }) {
   const recordingHere = mine && tagging.recording;
   const otherRecording = tagging.recording && !mine;
   return (
-    <div className="mt-2 rounded-xl bg-[#E5F8FE] p-3">
+    <div className="mt-2 rounded-xl bg-brand-tint p-3">
       <p className="text-sm font-semibold" style={{ color: NAVY }}>
         क्या बेचा? बोलकर बताइए
       </p>
@@ -159,7 +159,7 @@ export function PaymentList({
       title={limit ? "Recent payments" : "All payments"}
       action={
         onSeeAll && transactions.length > shown.length ? (
-          <button onClick={onSeeAll} className="text-sm font-semibold" style={{ color: "#0098D1" }}>
+          <button onClick={onSeeAll} className="text-sm font-semibold" style={{ color: PRIMARY }}>
             See all ›
           </button>
         ) : undefined
@@ -192,7 +192,7 @@ export function CollectionCard({ transactions }: { transactions: Txn[] }) {
   return (
     <section
       className="rounded-2xl p-4 text-white shadow-sm"
-      style={{ background: `linear-gradient(135deg, ${NAVY} 0%, #0B4FA0 100%)` }}
+      style={{ background: `linear-gradient(135deg, ${NAVY} 0%, ${DEEP} 100%)` }}
     >
       <div className="text-xs font-medium opacity-80">Total collection · कुल कलेक्शन</div>
       <div className="mt-0.5 text-3xl font-bold">{inr(total)}</div>

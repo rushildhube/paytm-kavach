@@ -1,6 +1,6 @@
 import type { Snapshot } from "@backend/api";
 import { inr } from "../parts";
-import { Card, NAVY } from "./chrome";
+import { Card, NAVY, PRIMARY, TINT } from "./chrome";
 
 /**
  * Soundbox settings: the language the Soundbox announces payments in and
@@ -34,8 +34,8 @@ export function SoundboxTab({
                 disabled={busy !== null && !selected}
                 className="rounded-xl border-2 px-3 py-2.5 text-left disabled:opacity-60"
                 style={{
-                  borderColor: selected ? "#00BAF2" : "#e2e8f0",
-                  background: selected ? "#E5F8FE" : "white",
+                  borderColor: selected ? PRIMARY : "#e2e8f0",
+                  background: selected ? TINT : "white",
                 }}
               >
                 <div className="text-base font-semibold" style={{ color: NAVY }}>

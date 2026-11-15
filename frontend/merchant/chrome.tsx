@@ -1,11 +1,14 @@
-import Image from "next/image";
+import { BRAND } from "../brand";
+import { BrandLogo } from "../BrandLogo";
 import type { Snapshot } from "@backend/api";
 import type { SaleTag } from "@backend/types";
 import { inr } from "../parts";
 
-/** Paytm palette, as used across the merchant screens. */
-export const BLUE = "#00BAF2";
-export const NAVY = "#002E6E";
+/** Brand palette for inline styles; the values live in ../brand.ts. */
+export const PRIMARY = BRAND.primary;
+export const NAVY = BRAND.navy;
+export const TINT = BRAND.tint;
+export const DEEP = BRAND.deep;
 
 export type Tab = "home" | "payments" | "proofs" | "bills" | "soundbox";
 
@@ -30,14 +33,7 @@ export function AppBar({
   return (
     <header className="sticky top-0 z-20 bg-white shadow-[0_1px_0_rgba(0,0,0,0.06)]">
       <div className="flex items-center gap-2 px-4 pt-3">
-        <Image
-          src="/brand/paytm-logo.svg"
-          alt="Paytm"
-          width={72}
-          height={23}
-          unoptimized
-          priority
-        />
+        <BrandLogo size={24} />
         <span className="text-[13px] font-semibold" style={{ color: NAVY }}>
           for Business
         </span>
@@ -105,7 +101,7 @@ export function BottomNav({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void })
           >
             <span
               className="grid h-7 w-11 place-items-center rounded-full text-base"
-              style={{ background: active ? "#E5F8FE" : "transparent" }}
+              style={{ background: active ? TINT : "transparent" }}
               aria-hidden
             >
               {t.icon}

@@ -7,6 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { handle } from "@backend/api";
+import { BRAND } from "@frontend/brand";
 import { createBill } from "@backend/bills";
 import { db, dbFile, SCHEMA_VERSION } from "@backend/db/connection";
 import { getTransaction, recordPayment, recordSaleTag } from "@backend/ledger";
@@ -232,7 +233,7 @@ describe("bill-first payments (#15)", () => {
 
   it("the merchant snapshot carries the shop's UPI handle", async () => {
     const state = (await handle({ action: "state" })).state as { merchant: { vpa: string } };
-    expect(state.merchant.vpa).toBe("sharmakirana@demopaytm");
+    expect(state.merchant.vpa).toBe(`sharmakirana@${BRAND.vpaDomain}`);
   });
 
   it("bill-lookup shows the customer only id, amount, status and shop name", async () => {

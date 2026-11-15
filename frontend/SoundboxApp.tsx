@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { BrandLogo } from "./BrandLogo";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SoundboxSnapshot } from "@backend/api";
 import { DEMO_PAYMENT } from "@data/seed";
@@ -35,7 +35,7 @@ const HOLD_MS = 350;
 const METER_BARS = [0.5, 0.8, 1, 0.75, 0.95, 0.6, 0.85, 0.55, 0.9, 0.7, 0.45];
 
 /**
- * The Paytm Soundbox on the shop counter, as a phone-screen mock. It
+ * The Soundbox on the shop counter (brand from brand.ts), as a phone-screen mock. It
  * announces every payment in the merchant's language, queued so that
  * payments arriving together never cut each other off, and keeps a queue of
  * payments still waiting for a sale tag. The shopkeeper speaks once; the
@@ -265,10 +265,10 @@ export default function SoundboxApp() {
     <div className="flex min-h-dvh flex-col items-center bg-gradient-to-b from-slate-200 to-slate-300 px-4 py-6">
       {/* ---------- the device ---------- */}
       <div className="relative w-full max-w-sm">
-        <div className="rounded-[2.25rem] bg-gradient-to-b from-[#0b2a5b] to-[#071d40] p-3 shadow-[0_20px_40px_-12px_rgba(7,29,64,0.6)] ring-1 ring-black/20">
+        <div className="rounded-[2.25rem] bg-gradient-to-b from-brand-deep to-brand-navy p-3 shadow-[0_20px_40px_-12px_rgba(7,29,64,0.6)] ring-1 ring-black/20">
           {/* top: brand plate, LED */}
           <div className="flex items-center justify-between rounded-t-[1.75rem] rounded-b-xl bg-white px-4 py-2.5">
-            <Image src="/brand/paytm-logo.svg" alt="Paytm" width={84} height={26} unoptimized priority />
+            <BrandLogo size={26} />
             <div className="flex items-center gap-2">
               <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
                 Demo
@@ -303,17 +303,17 @@ export default function SoundboxApp() {
           </div>
 
           {/* speaker grille */}
-          <div className="relative mx-auto mt-4 aspect-square w-44 rounded-full bg-[#0a2450] p-3 shadow-[inset_0_3px_8px_rgba(0,0,0,0.6)]">
+          <div className="relative mx-auto mt-4 aspect-square w-44 rounded-full bg-brand-navy p-3 shadow-[inset_0_3px_8px_rgba(0,0,0,0.6)]">
             <div
               className={`h-full w-full rounded-full transition-opacity ${speaking ? "opacity-100" : "opacity-70"}`}
               style={{
-                backgroundImage: "radial-gradient(circle, #6b84b3 1.6px, transparent 1.9px)",
+                backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.32) 1.6px, transparent 1.9px)",
                 backgroundSize: "9px 9px",
                 WebkitMaskImage: "radial-gradient(circle, #000 68%, transparent 70%)",
                 maskImage: "radial-gradient(circle, #000 68%, transparent 70%)",
               }}
             />
-            {speaking && <div className="absolute inset-0 animate-ping rounded-full ring-2 ring-[#00BAF2]/40" />}
+            {speaking && <div className="absolute inset-0 animate-ping rounded-full ring-2 ring-brand/40" />}
           </div>
 
           {/* physical buttons */}
@@ -321,7 +321,7 @@ export default function SoundboxApp() {
             {["−", "⏻", "+"].map((b) => (
               <span
                 key={b}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-[#123366] text-sm text-white/70 shadow-[0_2px_0_#051534]"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-deep text-sm text-white/70 shadow-[0_2px_0_rgba(0,0,0,0.45)]"
               >
                 {b}
               </span>
@@ -334,7 +334,7 @@ export default function SoundboxApp() {
             onClick={powerOn}
             className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-[2.25rem] bg-black/80 text-white"
           >
-            <span className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-[#00BAF2] text-3xl">⏻</span>
+            <span className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-brand text-3xl">⏻</span>
             <span className="text-lg font-semibold">Tap to switch on</span>
             <span className="text-xs text-slate-300">Needed once so the phone can play sound</span>
           </button>
@@ -358,7 +358,7 @@ export default function SoundboxApp() {
                 disabled={!recorder.recording && !micReady}
                 aria-label={recorder.recording ? "Stop" : "Speak"}
                 className={`relative mx-auto mt-4 flex h-28 w-28 touch-none select-none items-center justify-center rounded-full text-white shadow-lg transition active:scale-95 disabled:opacity-40 ${
-                  recorder.recording ? "bg-red-600" : "bg-[#00BAF2]"
+                  recorder.recording ? "bg-red-600" : "bg-brand"
                 }`}
               >
                 <svg viewBox="0 0 24 24" className="h-12 w-12" fill="currentColor" aria-hidden>
@@ -428,7 +428,7 @@ export default function SoundboxApp() {
                         onClick={() => onCard(p)}
                         disabled={working || (recorder.recording && !listeningFor)}
                         className={`flex w-full items-center justify-between rounded-2xl bg-white px-4 py-4 text-left shadow transition active:scale-[0.98] ${
-                          hot ? "ring-4 ring-[#00BAF2]" : listeningFor ? "ring-4 ring-red-400" : "ring-1 ring-slate-200"
+                          hot ? "ring-4 ring-brand" : listeningFor ? "ring-4 ring-red-400" : "ring-1 ring-slate-200"
                         }`}
                       >
                         <span>

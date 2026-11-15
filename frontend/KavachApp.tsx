@@ -6,6 +6,7 @@ import type { Packet, Snapshot } from "@backend/api";
 import type { Bill } from "@backend/types";
 import { DEMO_PAYEE_VPA, DEMO_PAYMENT } from "@data/seed";
 import { useRecorder } from "@voice/useRecorder";
+import { BRAND } from "./brand";
 import { BillsTab } from "./merchant/bills";
 import { QrCode } from "./QrCode";
 import { buildUpiUri } from "./upi";
@@ -24,7 +25,7 @@ const btn =
   "rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 
 /**
- * The merchant's Paytm for Business app with Kavach.
+ * The merchant's business app (brand from brand.ts) with Kavach.
  * With `controls`, it also shows the single-screen demo controls (the `/`
  * fallback). Without them it is the phone screen in the multi-screen demo,
  * driven by the Soundbox, customer and bank screens.
@@ -195,7 +196,7 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
   const pay = async () => {
     const reply = await call<{ needsTag: boolean }>({ action: "pay" });
     if (reply) {
-      void speak(`पेटीएम पर ${DEMO_PAYMENT.amountInr} रुपये प्राप्त हुए। क्या बेचा, बताइए।`);
+      void speak(`${BRAND.spokenOn["hi-IN"]} ${DEMO_PAYMENT.amountInr} रुपये प्राप्त हुए। क्या बेचा, बताइए।`);
     }
   };
 
@@ -332,7 +333,7 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
               onCreate={createBill}
               onCancel={cancelBill}
               renderQr={(b: Bill) => (
-                <div className="flex flex-col items-center rounded-2xl border-4 border-[#00BAF2] bg-white p-3">
+                <div className="flex flex-col items-center rounded-2xl border-4 border-brand bg-white p-3">
                   <QrCode
                     text={buildUpiUri({
                       pa: DEMO_PAYEE_VPA,
@@ -358,7 +359,7 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
           {tab === "soundbox" && <SoundboxTab state={state} busy={busy} onLanguage={setLanguage} />}
 
           <p className="pb-1 text-center text-[10px] text-slate-400">
-            Demo for a Paytm hackathon. Not the real Paytm for Business app. Synthetic data only.
+            Demo · {BRAND.kavach}. {BRAND.name} is a made-up brand, not a real payments app. Synthetic data only.
           </p>
         </div>
 
@@ -370,13 +371,13 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
         <aside className="w-full rounded-2xl border border-slate-200 bg-white p-5 lg:sticky lg:top-8 lg:max-w-xs">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Demo controls</h2>
           <p className="mt-1 text-xs text-slate-500">
-            These stand in for Paytm&apos;s payment and hold events. Synthetic data only.
+            These stand in for {BRAND.name}&apos;s payment and hold events. Synthetic data only.
           </p>
           <div className="mt-4 flex flex-col gap-2">
             <button
               onClick={pay}
               disabled={busy !== null || !!hold || !!pending}
-              className={`${btn} bg-[#00BAF2] text-[#002E6E]`}
+              className={`${btn} bg-brand text-brand-navy`}
             >
               1 · {inr(DEMO_PAYMENT.amountInr)} payment arrives
             </button>
@@ -433,7 +434,7 @@ function QuickAction({
   return (
     <button onClick={onClick} className="relative flex flex-col items-center gap-1">
       <span
-        className="grid size-11 place-items-center rounded-2xl bg-[#E5F8FE] text-lg"
+        className="grid size-11 place-items-center rounded-2xl bg-brand-tint text-lg"
         style={{ color: NAVY }}
         aria-hidden
       >
@@ -441,7 +442,7 @@ function QuickAction({
       </span>
       {label}
       {!!badge && (
-        <span className="absolute -top-1 right-2 rounded-full bg-[#00BAF2] px-1.5 text-[10px] font-bold text-white">
+        <span className="absolute -top-1 right-2 rounded-full bg-brand px-1.5 text-[10px] font-bold text-white">
           {badge}
         </span>
       )}

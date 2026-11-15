@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetRateLimits } from "@backend/ratelimit";
 import { announcePayment, PHRASES, phrasesFor, spokenAmount, spokenBill } from "@voice/announce";
 import { spokenAmountsInr } from "@voice/amounts";
+import { BRAND } from "@frontend/brand";
 import { isVoiceLanguage, VOICE_LANGUAGES, type VoiceLanguage } from "@voice/languages";
 import { textToSpeech, transcribe, ttsRequestBody, speechToText } from "@voice/sarvam";
 import {
@@ -59,8 +60,16 @@ describe("announcement phrases", () => {
       expect(said, lang).toContain("1250");
       expect(said, lang).not.toMatch(/1,250/);
     }
-    expect(announcePayment({ amountInr: 826 }, "hi-IN")).toBe("पेटीएम पर 826 रुपये प्राप्त हुए।");
-    expect(announcePayment({ amountInr: 826 }, "en-IN")).toBe("Received 826 rupees on Paytm.");
+    expect(announcePayment({ amountInr: 826 }, "hi-IN")).toBe(`${BRAND.spokenOn["hi-IN"]} 826 रुपये प्राप्त हुए।`);
+    expect(announcePayment({ amountInr: 826 }, "en-IN")).toBe(`Received 826 rupees ${BRAND.spokenOn["en-IN"]}.`);
+  });
+
+  it("names the demo brand from brand.ts in every language, never a real payments company", () => {
+    for (const lang of LANGS) {
+      const said = announcePayment({ amountInr: 826 }, lang);
+      expect(said, lang).toContain(BRAND.spokenOn[lang]);
+      expect(said, lang).not.toMatch(/paytm|पेटीएम|পেটিএম|પેટીએમ|ಪೇಟಿಎಂ|പേടിഎ|ପେଟିଏମ|ਪੇਟੀਐਮ|பேடிஎம்|పేటీఎం/i);
+    }
   });
 
   it("reads paise separately and never invents them", () => {
@@ -170,7 +179,7 @@ describe("voice routes", () => {
   };
 
   it("TTS route speaks in the requested language and returns mp3", async () => {
-    const res = await ttsPOST(ttsReq({ text: "Received 826 rupees on Paytm.", language: "en-IN" }));
+    const res = await ttsPOST(ttsReq({ text: "Received 826 rupees.", language: "en-IN" }));
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe(TTS_CONTENT_TYPE);
     expect(JSON.parse(String(calls[0].init.body)).language_code).toBe("en-IN");

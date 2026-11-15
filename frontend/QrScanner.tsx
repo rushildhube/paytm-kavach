@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
+import { BRAND } from "./brand";
 
 /**
  * Full-screen camera QR scanner in the style of Paytm's "Scan any QR".
@@ -155,10 +156,10 @@ export function QrScanner({
           ].map((c) => (
             <span key={c} className={`absolute h-12 w-12 border-white ${c}`} />
           ))}
-          {!camError && <span className="kavach-scanline absolute inset-x-3 h-0.5 bg-[#00BAF2] shadow-[0_0_12px_#00BAF2]" />}
+          {!camError && <span className="kavach-scanline absolute inset-x-3 h-0.5 bg-brand shadow-[0_0_12px_var(--brand-primary)]" />}
         </div>
         <p className="mt-6 text-center text-sm text-white/85">
-          {camError ?? "Point at the shop's Paytm QR code"}
+          {camError ?? `Point at the shop's ${BRAND.name} QR code`}
         </p>
         {notice && (
           <p role="status" className="mt-3 rounded-lg bg-red-600/90 px-3 py-2 text-center text-sm">

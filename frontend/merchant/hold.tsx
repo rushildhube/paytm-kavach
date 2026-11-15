@@ -62,7 +62,7 @@ export function HoldAlert({
           {canSpeak && (
             <button
               onClick={() => onSpeak(explanation.text)}
-              className="mt-2 rounded-full bg-[#E5F8FE] px-3 py-1.5 text-sm font-semibold"
+              className="mt-2 rounded-full bg-brand-tint px-3 py-1.5 text-sm font-semibold"
               style={{ color: NAVY }}
             >
               ▶ सुनिए
@@ -128,7 +128,7 @@ function Question({
 }) {
   const pill = (selected: boolean) =>
     `rounded-full border px-5 py-1.5 text-sm font-semibold ${
-      selected ? "border-[#002E6E] bg-[#002E6E] text-white" : "border-slate-300 text-slate-700"
+      selected ? "border-brand-navy bg-brand-navy text-white" : "border-slate-300 text-slate-700"
     }`;
   return (
     <div className="mt-3">
@@ -217,7 +217,7 @@ export function TrackerCard({
           <li
             key={step.level}
             className={`rounded-xl p-2 ${
-              i === tracker.currentStep ? "bg-[#E5F8FE] font-medium text-[#002E6E]" : "text-slate-500"
+              i === tracker.currentStep ? "bg-brand-tint font-medium text-brand-navy" : "text-slate-500"
             }`}
           >
             {step.level}. {step.to}
