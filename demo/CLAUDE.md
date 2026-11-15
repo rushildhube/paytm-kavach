@@ -2,6 +2,13 @@
 
 Everything needed to run the live demo reliably in front of judges.
 
+## Four-screen live demo (branch `feat/multi-screen-demo`)
+
+- Run `npm run dev` for laptop tabs, or `npm run dev:lan` for phones (HTTPS on 0.0.0.0 with a self-signed certificate, needed for phone mics; open `https://<laptop-LAN-IP>:3000/<screen>` and accept the warning). Self-signed certificates land in `certificates/` (git-ignored).
+- Devices: `/customer` and `/soundbox` on phones, `/merchant` on a phone or the laptop, `/bank` on the laptop as the presenter console. Reset from `/bank`.
+- Order: customer pays → Soundbox announces, shopkeeper tags → merchant shows the tag → bank reports (merchant sees nothing) → bank restricts → merchant: explanation, two questions, certificate, grievance, "filed" → bank: simulate day 22 → escalation on the merchant screen.
+- `script.md` still describes the single-screen demo; the four-screen rewrite is issue #14. Browser click-through: #13. Phone rehearsal: #16. Tag-window timing: #17.
+
 ## What belongs here
 
 - `script.md` — the spoken walkthrough, step by step:
@@ -21,7 +28,7 @@ Everything needed to run the live demo reliably in front of judges.
 
 ## Rules for this folder
 
-- The demo must be repeatable from a single reset (the Reset demo button; it reseeds the in-memory store and clears simulated alerts).
+- The demo must be repeatable from a single reset (the Reset demo button; it drops and reseeds the SQLite database and clears simulated alerts).
 - Keep a fully offline fallback path; never depend on live speech recognition or a live model call working on stage.
 - The demo shows the same guardrails as the product: disclaimers visible, merchant files the draft, nothing auto-sent.
 - Demo data is synthetic and comes from `data/`.

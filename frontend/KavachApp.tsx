@@ -3,106 +3,92 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Draft } from "@agent/drafts";
 import type { Packet, Snapshot } from "@backend/api";
-import { DEMO_PAYMENT } from "@data/seed";
+import type { Bill } from "@backend/types";
+import { DEMO_PAYEE_VPA, DEMO_PAYMENT } from "@data/seed";
 import { useRecorder } from "@voice/useRecorder";
-import { CertificateCard, Disclaimer, DraftCard, inr, when } from "./parts";
+import { BRAND } from "./brand";
+import { BillsTab } from "./merchant/bills";
+import { QrCode } from "./QrCode";
+import { buildUpiUri } from "./upi";
+import { AppBar, BottomNav, Card, NAVY, type Tab } from "./merchant/chrome";
+import { HoldAlert, MuleScreen, PacketView, TrackerCard, type Answers } from "./merchant/hold";
+import { CollectionCard, PaymentList, type Tagging } from "./merchant/payments";
+import { ProofsTab } from "./merchant/proofs";
+import { SoundboxTab } from "./merchant/soundbox";
+import { Disclaimer, DraftCard, inr } from "./parts";
+import { speak as speakText, stopSpeaking } from "./speech";
+import { useLive } from "./useLive";
 
-type Reply<T> = { result: T; state: Snapshot };
-type Answers = { lentAccount: boolean | null; receivedForCommission: boolean | null };
 const NO_ANSWERS: Answers = { lentAccount: null, receivedForCommission: null };
 
 const btn =
   "rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 
-export default function KavachApp() {
-  const [state, setState] = useState<Snapshot | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+/**
+ * The merchant's business app (brand from brand.ts) with Kavach.
+ * With `controls`, it also shows the single-screen demo controls (the `/`
+ * fallback). Without them it is the phone screen in the multi-screen demo,
+ * driven by the Soundbox, customer and bank screens.
+ *
+ * All hold-flow state lives here, not in the tabs, so switching tabs never
+ * loses the packet or repeats the spoken explanation.
+ */
+export default function KavachApp({ controls = true }: { controls?: boolean }) {
   const [explanation, setExplanation] = useState<Draft | null>(null);
   const [answers, setAnswers] = useState<Answers>(NO_ANSWERS);
   const [packet, setPacket] = useState<Packet | null>(null);
   const [escalation, setEscalation] = useState<Draft | null>(null);
-  const audio = useRef<HTMLAudioElement | null>(null);
+  const [listening, setListening] = useState(false);
+  /** Tab picked by the merchant, and the hold that was showing when they picked it. */
+  const [picked, setPicked] = useState<{ tab: Tab; holdId: string | null }>({
+    tab: "home",
+    holdId: null,
+  });
+  const [tagTarget, setTagTarget] = useState<string | null>(null);
+  const tagTargetRef = useRef<string | null>(null);
+  const requested = useRef<{ explain?: string; escalation?: string }>({});
 
-  const call = useCallback(
-    async <T,>(body: Record<string, unknown>): Promise<Reply<T> | null> => {
-      setBusy(String(body.action));
-      setError(null);
-      try {
-        const res = await fetch("/api/kavach", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "Something went wrong");
-        setState(json.state);
-        return json as Reply<T>;
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
-        return null;
-      } finally {
-        setBusy(null);
-      }
-    },
-    [],
-  );
-
-  useEffect(() => {
-    let live = true;
-    fetch("/api/kavach", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "state" }),
-    })
-      .then((res) => res.json())
-      .then((json) => {
-        if (!live) return;
-        if (json.state) setState(json.state);
-        else setError(json.error ?? "Could not load");
-      })
-      .catch(() => live && setError("Could not load"));
-    return () => {
-      live = false;
-    };
+  const onReset = useCallback(() => {
+    stopSpeaking();
+    requested.current = {};
+    setExplanation(null);
+    setAnswers(NO_ANSWERS);
+    setPacket(null);
+    setEscalation(null);
+    setPicked({ tab: "home", holdId: null });
   }, []);
+  const live = useLive<Snapshot>("merchant", { onReset });
+  const { state, error, setError, call } = live;
+  const busy = listening ? "listening" : live.busy;
 
-  /** Speak through Sarvam. Silent no-op if speech is not configured. */
+  const hold = state?.hold ?? null;
+  // A new hold always brings the merchant back to Home, where the hold flow is.
+  const tab: Tab = hold && hold.id !== picked.holdId ? "home" : picked.tab;
+  const goTo = useCallback((t: Tab) => setPicked({ tab: t, holdId: hold?.id ?? null }), [hold]);
+
+  /** Speak Hindi aloud: Sarvam if configured, otherwise the browser voice. */
   const speak = useCallback(
-    async (text: string) => {
-      if (!state?.speechConfigured) return;
-      try {
-        const res = await fetch("/api/voice/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
-        });
-        if (!res.ok) return;
-        audio.current?.pause();
-        audio.current = new Audio(URL.createObjectURL(await res.blob()));
-        await audio.current.play();
-      } catch {
-        // Audio is a nicety; the text is always on screen.
-      }
-    },
+    (text: string) => speakText(text, state?.speechConfigured ?? false),
     [state?.speechConfigured],
   );
 
-  const pending = state?.transactions.find((t) => t.canTag) ?? null;
   const latest = state?.transactions[0] ?? null;
-  const hold = state?.hold ?? null;
+  const pending = state?.transactions.find((t) => t.canTag) ?? null;
+
+  // ---- sale tags: always for the payment card the merchant used ------------
 
   const saveTag = useCallback(
-    async (transcript: string, source: "voice" | "recorded_clip") => {
-      if (!pending) return;
-      await call({ action: "tag", txnId: pending.id, transcript, source });
+    async (txnId: string, transcript: string, source: "voice" | "recorded_clip") => {
+      await call({ action: "tag", txnId, transcript, source });
     },
-    [call, pending],
+    [call],
   );
 
-  const onClip = useCallback(
+  const onRecorded = useCallback(
     async (clip: Blob) => {
-      setBusy("listening");
+      const txnId = tagTargetRef.current;
+      if (!txnId) return;
+      setListening(true);
       setError(null);
       try {
         const form = new FormData();
@@ -111,340 +97,368 @@ export default function KavachApp() {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "Could not understand the audio");
         if (!json.transcript) throw new Error("Nothing was heard. Please say it again.");
-        await saveTag(json.transcript, "voice");
+        await saveTag(txnId, json.transcript, "voice");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not understand the audio");
-        setBusy(null);
+      } finally {
+        setListening(false);
       }
     },
-    [saveTag],
+    [saveTag, setError],
   );
-  const recorder = useRecorder(onClip);
+  const recorder = useRecorder(onRecorded);
+
+  const tagging: Tagging = {
+    activeTxnId: tagTarget,
+    recording: recorder.recording,
+    busy,
+    speechConfigured: state?.speechConfigured ?? false,
+    recorderError: recorder.error,
+    onMic: (txnId) => {
+      if (recorder.recording) {
+        if (tagTargetRef.current === txnId) recorder.stop();
+        return;
+      }
+      tagTargetRef.current = txnId;
+      setTagTarget(txnId);
+      recorder.start();
+    },
+    onClip: (txnId) => {
+      tagTargetRef.current = txnId;
+      setTagTarget(txnId);
+      void saveTag(txnId, DEMO_PAYMENT.spokenTag, "recorded_clip");
+    },
+  };
+
+  // ---- hold flow -----------------------------------------------------------
+
+  // Drafts take seconds. If the demo is reset while one is in flight, its reply
+  // belongs to the old run (hold ids restart at reset), so it is dropped: the
+  // reply's epoch must still be the one the request was sent in.
+  const epoch = state?.epoch;
+  const sameRun = (reply: { state: { epoch: number } } | null, sentIn: number | undefined) =>
+    reply !== null && reply.state.epoch === sentIn;
+
+  // A hold can arrive from the bank screen at any moment: explain it once.
+  useEffect(() => {
+    if (!hold || requested.current.explain === hold.id) return;
+    requested.current.explain = hold.id;
+    const sentIn = epoch;
+    void call<Draft>({ action: "explain", holdId: hold.id }).then((reply) => {
+      if (reply && sameRun(reply, sentIn)) {
+        setExplanation(reply.result);
+        void speak(reply.result.text);
+      }
+    });
+  }, [hold, call, speak, epoch]);
+
+  // When the deadline passes without a reply, prepare the escalation once.
+  const stage = state?.tracker?.stage;
+  useEffect(() => {
+    if (!hold || stage !== "escalation_due" || requested.current.escalation === hold.id) return;
+    requested.current.escalation = hold.id;
+    const sentIn = epoch;
+    void call<Draft>({ action: "escalation", holdId: hold.id }).then((reply) => {
+      if (reply && sameRun(reply, sentIn)) setEscalation(reply.result);
+    });
+  }, [hold, stage, call, epoch]);
+
+  const preparePacket = async () => {
+    if (!hold || answers.lentAccount === null || answers.receivedForCommission === null) return;
+    const sentIn = epoch;
+    const reply = await call<Packet>({ action: "packet", holdId: hold.id, answers });
+    if (reply && sameRun(reply, sentIn)) setPacket(reply.result);
+  };
+
+  // ---- bills and settings --------------------------------------------------
+
+  const createBill = async (amountInr: number, text: string) =>
+    (await call<Bill>({ action: "bill-create", amountInr, text })) !== null;
+  const cancelBill = (billId: string) => void call({ action: "bill-cancel", billId });
+  const setLanguage = (language: string) => void call({ action: "settings", language });
+
+  /** Invoice photo/PDF for one payment (#22). Only its SHA-256 is kept server-side. */
+  const attachInvoice = async (txnId: string, file: File) => {
+    setError(null);
+    const form = new FormData();
+    form.set("txnId", txnId);
+    form.set("file", file);
+    let refusal: string | null = null;
+    try {
+      const res = await fetch("/api/invoice", { method: "POST", body: form });
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        refusal =
+          res.status === 413
+            ? "The file is larger than 2 MB."
+            : res.status === 429
+              ? "Too many uploads. Try again in a minute."
+              : (body.error ?? "Could not attach the invoice.");
+      }
+    } catch {
+      refusal = "Could not attach the invoice.";
+    }
+    // Refresh first: a successful call clears the error, so set it afterwards.
+    await call({ action: "state" });
+    if (refusal) setError(refusal);
+  };
 
   // ---- demo controls -------------------------------------------------------
 
   const pay = async () => {
     const reply = await call<{ needsTag: boolean }>({ action: "pay" });
     if (reply) {
-      void speak(
-        `पेटीएम पर ${DEMO_PAYMENT.amountInr} रुपये प्राप्त हुए। क्या बेचा, बताइए।`,
-      );
+      void speak(`${BRAND.spokenOn["hi-IN"]} ${DEMO_PAYMENT.amountInr} रुपये प्राप्त हुए। क्या बेचा, बताइए।`);
     }
   };
 
   const triggerHold = async () => {
     if (!latest) return;
-    const placed = await call<{ id: string }>({ action: "hold", txnId: latest.id });
-    if (!placed) return;
-    const reply = await call<Draft>({ action: "explain", holdId: placed.result.id });
-    if (reply) {
-      setExplanation(reply.result);
-      void speak(reply.result.text);
-    }
+    await call({ action: "report", txnId: latest.id });
+    await call({ action: "hold", txnId: latest.id });
   };
 
-  const preparePacket = async () => {
-    if (!hold || answers.lentAccount === null || answers.receivedForCommission === null) return;
-    const reply = await call<Packet>({ action: "packet", holdId: hold.id, answers });
-    if (reply) setPacket(reply.result);
-  };
-
-  const day15 = async () => {
+  const simulateEscalationDay = async () => {
     if (!hold || !state?.tracker) return;
     const days = state.tracker.escalateAfterDays - (state.tracker.daysSinceFiled ?? 0);
-    const moved = await call({ action: "advance", days: Math.max(days, 1) });
-    if (moved?.state.tracker?.stage === "escalation_due") {
-      const reply = await call<Draft>({ action: "escalation", holdId: hold.id });
-      if (reply) setEscalation(reply.result);
-    }
+    await call({ action: "advance", days: Math.max(days, 1) });
   };
 
-  const reset = async () => {
-    audio.current?.pause();
-    setExplanation(null);
-    setAnswers(NO_ANSWERS);
-    setPacket(null);
-    setEscalation(null);
-    await call({ action: "reset" });
-  };
+  const reset = () => call({ action: "reset" });
 
   if (!state) {
     return <div className="p-10 text-slate-500">{error ?? "Loading…"}</div>;
   }
 
   const tracker = state.tracker;
-  const filed = tracker && tracker.stage !== "not_filed";
+  const filed = !!tracker && tracker.stage !== "not_filed";
+  const openBills = state.bills.filter((b) => b.status === "open").length;
+
+  const holdFlow = hold && (
+    <>
+      <HoldAlert
+        hold={hold}
+        explanation={explanation}
+        explaining={busy === "explain"}
+        canSpeak={state.speechConfigured}
+        onSpeak={speak}
+      />
+      {explanation && !packet && (
+        <MuleScreen answers={answers} onAnswers={setAnswers} busy={busy} onSubmit={preparePacket} />
+      )}
+      {packet && (
+        <PacketView
+          packet={packet}
+          alerts={state.lawWatch.alertsByRule}
+          filed={filed}
+          busy={busy}
+          onFiled={() => call({ action: "filed", holdId: hold.id })}
+        />
+      )}
+      {filed && tracker && <TrackerCard tracker={tracker} ladder={state.ladder} />}
+      {escalation && (
+        <DraftCard
+          title="Escalation letter"
+          draft={escalation}
+          filename={`escalation-${hold.reference}.txt`}
+          alerts={state.lawWatch.alertsByRule}
+        />
+      )}
+      <Disclaimer text={`${state.disclaimerHi} ${state.disclaimer}`} />
+    </>
+  );
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 lg:flex-row lg:items-start lg:p-8">
+    <div
+      className={
+        controls
+          ? "mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 lg:flex-row lg:items-start lg:p-8"
+          : "mx-auto w-full max-w-md"
+      }
+    >
       {/* ---------------- merchant phone ---------------- */}
-      <main className="mx-auto w-full max-w-md overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 shadow-xl">
-        <header className={`px-5 py-4 text-white ${hold ? "bg-red-600" : "bg-[#002E6E]"}`}>
-          <div className="text-xs opacity-80">Paytm for Business · Kavach</div>
-          <div className="text-lg font-semibold">{state.merchant.shopName}</div>
-          <div className="text-xs opacity-80">
-            {state.merchant.city} · A/c •••• {state.merchant.accountLast4}
-            {state.simulatedDays > 0 && ` · simulated day ${state.simulatedDays}`}
-          </div>
-        </header>
+      <main
+        className={
+          controls
+            ? "mx-auto flex w-full max-w-md flex-col overflow-clip rounded-[2rem] border border-slate-200 bg-[#F3F6FA] shadow-xl"
+            : "flex min-h-dvh w-full flex-col bg-[#F3F6FA]"
+        }
+      >
+        <AppBar
+          merchant={state.merchant}
+          simulatedDays={state.simulatedDays}
+          hold={hold}
+          onHoldTap={() => goTo("home")}
+        />
 
-        <div className="space-y-4 p-4">
-          {error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
-          )}
+        <div className="flex-1 space-y-3 p-3">
+          {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
-          {/* hold alert */}
-          {hold && (
-            <section className="rounded-xl border-2 border-red-500 bg-red-50 p-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-red-700">
-                Hold on one payment
-              </div>
-              <div className="mt-1 text-3xl font-bold text-red-700">
-                {inr(hold.heldAmountInr)} पर रोक
-              </div>
-              <p className="mt-1 text-sm font-medium text-red-900">
-                सिर्फ़ इस एक पेमेंट पर, पूरे खाते पर नहीं। यह कोई आरोप नहीं है।
-              </p>
-              <p className="mt-1 text-xs text-red-800">
-                Reference {hold.reference} · {when(hold.placedAt)}
-              </p>
-              {explanation ? (
-                <div className="mt-3 rounded-lg bg-white p-3">
-                  <p className="text-[15px] leading-relaxed text-slate-900">{explanation.text}</p>
-                  {state.speechConfigured && (
-                    <button
-                      onClick={() => speak(explanation.text)}
-                      className="mt-2 text-sm font-semibold text-[#002E6E]"
-                    >
-                      ▶ सुनिए
-                    </button>
-                  )}
-                </div>
-              ) : (
-                busy === "explain" && <p className="mt-3 text-sm text-red-800">समझा रहे हैं…</p>
-              )}
-            </section>
-          )}
-
-          {/* mule screen */}
-          {hold && explanation && !packet && (
-            <section className="rounded-xl border border-slate-200 bg-white p-4">
-              <h3 className="font-semibold text-slate-900">दो छोटे सवाल</h3>
-              <Question
-                text="क्या आपने यह खाता या QR किसी और को इस्तेमाल करने दिया?"
-                sub="Did you let anyone else use this account or QR?"
-                value={answers.lentAccount}
-                onChange={(v) => setAnswers((a) => ({ ...a, lentAccount: v }))}
-              />
-              <Question
-                text="क्या आपने किसी और के लिए पैसा लेकर आगे भेजा या कमीशन लिया?"
-                sub="Did you receive money for someone else, or for a commission?"
-                value={answers.receivedForCommission}
-                onChange={(v) => setAnswers((a) => ({ ...a, receivedForCommission: v }))}
-              />
-              <button
-                onClick={preparePacket}
-                disabled={
-                  busy !== null ||
-                  answers.lentAccount === null ||
-                  answers.receivedForCommission === null
-                }
-                className={`${btn} mt-3 w-full bg-[#002E6E] text-white`}
-              >
-                {busy === "packet" ? "काग़ज़ तैयार हो रहे हैं…" : "मेरे काग़ज़ तैयार कीजिए"}
-              </button>
-            </section>
-          )}
-
-          {/* packet */}
-          {packet && packet.eligibility.outcome !== "eligible" && (
-            <section className="rounded-xl border border-slate-300 bg-white p-4">
-              <h3 className="font-semibold text-slate-900">
-                {packet.eligibility.outcome === "legal_aid"
-                  ? "कृपया कानूनी सहायता लीजिए"
-                  : "Certificate not available"}
-              </h3>
-              <p className="mt-1 text-sm text-slate-700">{packet.eligibility.reason}</p>
-              {"referral" in packet && packet.referral && (
-                <>
-                  <p className="mt-2 text-[15px] leading-relaxed text-slate-900">{packet.referral.hi}</p>
-                  <p className="mt-1 text-sm text-slate-600">{packet.referral.en}</p>
-                </>
-              )}
-            </section>
-          )}
-
-          {packet && "certificate" in packet && (
+          {tab === "home" && (
             <>
-              <CertificateCard cert={packet.certificate} />
-              <DraftCard
-                title="Grievance to your bank"
-                draft={packet.grievance}
-                filename={`grievance-${packet.certificate.hold.reference}.txt`}
-                alerts={state.lawWatch.alertsByRule}
-              />
-              {!filed && (
-                <button
-                  onClick={() => hold && call({ action: "filed", holdId: hold.id })}
-                  disabled={busy !== null}
-                  className={`${btn} w-full border border-[#002E6E] bg-white text-[#002E6E]`}
-                >
-                  मैंने इसे अपने बैंक में जमा कर दिया है
-                </button>
+              {holdFlow}
+              <CollectionCard transactions={state.transactions} />
+              <Card>
+                <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-medium text-slate-700">
+                  <QuickAction icon="▤" label="Create bill" badge={openBills} onClick={() => goTo("bills")} />
+                  <QuickAction icon="₹" label="Payments" onClick={() => goTo("payments")} />
+                  <QuickAction icon="🔊" label="Soundbox" onClick={() => goTo("soundbox")} />
+                  <QuickAction icon="🛡" label="Proofs" onClick={() => goTo("proofs")} />
+                </div>
+              </Card>
+              {!hold && (
+                <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+                  <span className="text-xl" aria-hidden>
+                    🛡
+                  </span>
+                  <p>
+                    <span className="font-semibold">Kavach is on.</span> Payments of{" "}
+                    {inr(state.thresholdInr)} and above are tagged at the moment of sale, so the proof
+                    already exists if a payment is ever questioned.
+                  </p>
+                </div>
               )}
+              <PaymentList
+                transactions={state.transactions}
+                thresholdInr={state.thresholdInr}
+                accountLast4={state.merchant.accountLast4}
+                tagging={hold ? undefined : tagging}
+                limit={5}
+                onSeeAll={() => goTo("payments")}
+              />
             </>
           )}
 
-          {/* tracker */}
-          {filed && tracker && (
-            <section className="rounded-xl border border-slate-200 bg-white p-4">
-              <h3 className="font-semibold text-slate-900">Grievance tracker</h3>
-              <ol className="mt-2 space-y-2 text-sm">
-                {state.ladder.steps.map((step, i) => (
-                  <li
-                    key={step.level}
-                    className={`rounded-lg p-2 ${i === tracker.currentStep ? "bg-blue-50 font-medium text-[#002E6E]" : "text-slate-500"}`}
-                  >
-                    {step.level}. {step.to}
-                    <div className="text-[11px] font-normal">{step.deadline}</div>
-                  </li>
-                ))}
-              </ol>
-              <p className="mt-2 text-sm text-slate-700">
-                Day {tracker.daysSinceFiled} since you complained at your bank.{" "}
-                {tracker.stage === "escalation_due"
-                  ? `No decision after ${tracker.escalateAfterDays} days. A letter to the next level is ready below.`
-                  : `If there is no decision by day ${tracker.escalateAfterDays}, Kavach will draft a letter to the next level.`}
-              </p>
-              <p className="mt-1 text-[11px] text-slate-500">
-                {state.ladder.placeholder
-                  ? `The ${tracker.escalateAfterDays}-day figure is a demo placeholder, not a verified deadline.`
-                  : state.ladder.note}
-              </p>
-            </section>
-          )}
-
-          {escalation && (
-            <DraftCard
-              title="Escalation letter"
-              draft={escalation}
-              filename={`escalation-${hold?.reference ?? "draft"}.txt`}
-              alerts={state.lawWatch.alertsByRule}
+          {tab === "payments" && (
+            <PaymentList
+              transactions={state.transactions}
+              thresholdInr={state.thresholdInr}
+              accountLast4={state.merchant.accountLast4}
+              tagging={hold ? undefined : tagging}
             />
           )}
 
-          {(hold || packet) && <Disclaimer text={`${state.disclaimerHi} ${state.disclaimer}`} />}
-
-          {/* tag prompt */}
-          {pending && !hold && (
-            <section className="rounded-xl bg-[#00BAF2] p-4 text-[#002E6E]">
-              <div className="text-sm font-medium">Payment received</div>
-              <div className="text-4xl font-bold">{inr(pending.amountInr)}</div>
-              <p className="mt-1 text-base font-semibold">क्या बेचा? बोलकर बताइए</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  onClick={recorder.recording ? recorder.stop : recorder.start}
-                  disabled={!state.speechConfigured || (busy !== null && !recorder.recording)}
-                  className={`${btn} ${recorder.recording ? "bg-red-600 text-white" : "bg-[#002E6E] text-white"}`}
-                >
-                  {recorder.recording
-                    ? "● सुन रहे हैं… रोकें"
-                    : busy === "listening"
-                      ? "समझ रहे हैं…"
-                      : "🎙 बोलिए"}
-                </button>
-                <button
-                  onClick={() => saveTag(DEMO_PAYMENT.spokenTag, "recorded_clip")}
-                  disabled={busy !== null || recorder.recording}
-                  className={`${btn} bg-white/80 text-[#002E6E]`}
-                >
-                  Use recorded clip
-                </button>
-              </div>
-              <p className="mt-2 text-xs">
-                {state.speechConfigured
-                  ? `${pending.secondsLeft}s left to tag this sale. It cannot be added later.`
-                  : "Live speech is off (no SARVAM_API_KEY). Use the recorded clip."}
-              </p>
-              {recorder.error && <p className="mt-1 text-xs text-red-800">{recorder.error}</p>}
-            </section>
+          {tab === "bills" && (
+            <BillsTab
+              bills={state.bills}
+              busy={busy}
+              onCreate={createBill}
+              onCancel={cancelBill}
+              renderQr={(b: Bill) => (
+                <div className="flex flex-col items-center rounded-2xl border-4 border-brand bg-white p-3">
+                  <QrCode
+                    text={buildUpiUri({
+                      pa: DEMO_PAYEE_VPA,
+                      pn: state.merchant.shopName,
+                      am: b.amountInr,
+                      tr: b.id,
+                      tn: `Bill ${b.id}`,
+                    })}
+                    size={240}
+                    label={`UPI QR for bill ${b.id}`}
+                  />
+                  <div className="mt-2 text-sm font-semibold">
+                    {b.id} · {inr(b.amountInr)}
+                  </div>
+                  <div className="text-xs text-slate-500">Customer scans this to pay · DEMO</div>
+                </div>
+              )}
+            />
           )}
 
-          {/* sales */}
-          <section className="rounded-xl bg-white p-4">
-            <h3 className="font-semibold text-slate-900">Today&apos;s payments</h3>
-            <ul className="mt-2 divide-y divide-slate-100">
-              {state.transactions.map((t) => (
-                <li key={t.id} className="py-2">
-                  <div className="flex items-baseline justify-between">
-                    <span className={`font-semibold ${t.hold ? "text-red-600" : "text-slate-900"}`}>
-                      {inr(t.amountInr)}
-                      {t.hold && <span className="ml-2 text-xs font-medium">on hold</span>}
-                    </span>
-                    <span className="text-xs text-slate-500">{when(t.at)}</span>
-                  </div>
-                  <div className="text-xs text-slate-500">from {t.payerVpaMasked}</div>
-                  {t.tag ? (
-                    <div className="mt-1 inline-block rounded-md bg-emerald-50 px-2 py-0.5 text-sm text-emerald-800">
-                      🛡 {t.tag.transcript}
-                    </div>
-                  ) : (
-                    <div className="mt-1 text-xs text-slate-400">
-                      {t.amountInr < state.thresholdInr
-                        ? `Below ${inr(state.thresholdInr)}, not tagged`
-                        : t.canTag
-                          ? "Waiting for tag"
-                          : "Not tagged"}
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
+          {tab === "proofs" && <ProofsTab state={state} busy={busy} onAttach={attachInvoice} />}
+
+          {tab === "soundbox" && <SoundboxTab state={state} busy={busy} onLanguage={setLanguage} />}
+
+          <p className="pb-1 text-center text-[10px] text-slate-400">
+            Demo · {BRAND.kavach}. {BRAND.name} is a made-up brand, not a real payments app. Synthetic data only.
+          </p>
         </div>
+
+        <BottomNav tab={tab} onTab={goTo} />
       </main>
 
       {/* ---------------- demo controls ---------------- */}
-      <aside className="w-full rounded-2xl border border-slate-200 bg-white p-5 lg:sticky lg:top-8 lg:max-w-xs">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Demo controls</h2>
-        <p className="mt-1 text-xs text-slate-500">
-          These stand in for Paytm&apos;s payment and hold events. Synthetic data only.
-        </p>
-        <div className="mt-4 flex flex-col gap-2">
-          <button onClick={pay} disabled={busy !== null || !!hold || !!pending} className={`${btn} bg-[#00BAF2] text-[#002E6E]`}>
-            1 · {inr(DEMO_PAYMENT.amountInr)} payment arrives
-          </button>
-          <button
-            onClick={triggerHold}
-            disabled={busy !== null || !!hold || !latest}
-            className={`${btn} bg-red-600 text-white`}
-          >
-            2 · Hold placed on latest payment
-          </button>
-          <button
-            onClick={day15}
-            disabled={busy !== null || !filed || tracker?.stage === "escalation_due"}
-            className={`${btn} bg-slate-800 text-white`}
-          >
-            3 · Simulate day {tracker?.escalateAfterDays ?? 15}
-          </button>
-          <button onClick={reset} disabled={busy !== null} className={`${btn} border border-slate-300 text-slate-700`}>
-            Reset demo
-          </button>
-        </div>
-        <dl className="mt-5 space-y-1 text-xs text-slate-500">
-          <div>Tag prompt at {inr(state.thresholdInr)} and above</div>
-          <div>Speech (Sarvam): {state.speechConfigured ? "on" : "off"}</div>
-          {busy && <div className="text-slate-700">Working: {busy}…</div>}
-        </dl>
-        <LawWatch
-          watch={state.lawWatch}
-          busy={busy !== null}
-          onCheck={() => call({ action: "check-feeds" })}
-          onSimulate={() => call({ action: "simulate-law-change" })}
-        />
-      </aside>
+      {controls && (
+        <aside className="w-full rounded-2xl border border-slate-200 bg-white p-5 lg:sticky lg:top-8 lg:max-w-xs">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Demo controls</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            These stand in for {BRAND.name}&apos;s payment and hold events. Synthetic data only.
+          </p>
+          <div className="mt-4 flex flex-col gap-2">
+            <button
+              onClick={pay}
+              disabled={busy !== null || !!hold || !!pending}
+              className={`${btn} bg-brand text-brand-navy`}
+            >
+              1 · {inr(DEMO_PAYMENT.amountInr)} payment arrives
+            </button>
+            <button
+              onClick={triggerHold}
+              disabled={busy !== null || !!hold || !latest}
+              className={`${btn} bg-red-600 text-white`}
+            >
+              2 · Hold placed on latest payment
+            </button>
+            <button
+              onClick={simulateEscalationDay}
+              disabled={busy !== null || !filed || tracker?.stage === "escalation_due"}
+              className={`${btn} bg-slate-800 text-white`}
+            >
+              3 · Simulate day {tracker?.escalateAfterDays ?? 22}
+            </button>
+            <button
+              onClick={reset}
+              disabled={busy !== null}
+              className={`${btn} border border-slate-300 text-slate-700`}
+            >
+              Reset demo
+            </button>
+          </div>
+          <dl className="mt-5 space-y-1 text-xs text-slate-500">
+            <div>Tag prompt at {inr(state.thresholdInr)} and above</div>
+            <div>Speech (Sarvam): {state.speechConfigured ? "on" : "off"}</div>
+            {busy && <div className="text-slate-700">Working: {busy}…</div>}
+          </dl>
+          <LawWatch
+            watch={state.lawWatch}
+            busy={busy !== null}
+            onCheck={() => call({ action: "check-feeds" })}
+            onSimulate={() => call({ action: "simulate-law-change" })}
+          />
+        </aside>
+      )}
     </div>
+  );
+}
+
+function QuickAction({
+  icon,
+  label,
+  badge,
+  onClick,
+}: {
+  icon: string;
+  label: string;
+  badge?: number;
+  onClick: () => void;
+}) {
+  return (
+    <button onClick={onClick} className="relative flex flex-col items-center gap-1">
+      <span
+        className="grid size-11 place-items-center rounded-2xl bg-brand-tint text-lg"
+        style={{ color: NAVY }}
+        aria-hidden
+      >
+        {icon}
+      </span>
+      {label}
+      {!!badge && (
+        <span className="absolute -top-1 right-2 rounded-full bg-brand px-1.5 text-[10px] font-bold text-white">
+          {badge}
+        </span>
+      )}
+    </button>
   );
 }
 
@@ -490,36 +504,5 @@ function LawWatch({
         </button>
       </div>
     </section>
-  );
-}
-
-function Question({
-  text,
-  sub,
-  value,
-  onChange,
-}: {
-  text: string;
-  sub: string;
-  value: boolean | null;
-  onChange: (v: boolean) => void;
-}) {
-  const pill = (selected: boolean) =>
-    `rounded-lg border px-4 py-1.5 text-sm font-semibold ${
-      selected ? "border-[#002E6E] bg-[#002E6E] text-white" : "border-slate-300 text-slate-700"
-    }`;
-  return (
-    <div className="mt-3">
-      <p className="text-[15px] text-slate-900">{text}</p>
-      <p className="text-xs text-slate-500">{sub}</p>
-      <div className="mt-1.5 flex gap-2">
-        <button className={pill(value === true)} onClick={() => onChange(true)}>
-          हाँ
-        </button>
-        <button className={pill(value === false)} onClick={() => onChange(false)}>
-          नहीं
-        </button>
-      </div>
-    </div>
   );
 }

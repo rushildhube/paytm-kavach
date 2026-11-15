@@ -35,14 +35,31 @@ function saleLine(c: SaleCertificate): string {
 
 export function explanationHi({ certificate: c }: DraftFacts): string {
   const amount = inr(c.hold.heldAmountInr);
+  const scope =
+    c.hold.scope === "debit_freeze"
+      ? [
+          `घबराइए मत। बैंक ने अभी आपके खाते से पैसे निकालने पर रोक लगाई है, लेकिन शिकायत सिर्फ़ एक पेमेंट की है, ${amount} की।`,
+          `यह रोक इसलिए लगी है क्योंकि उस पेमेंट की शिकायत दर्ज हुई है। यह आप पर कोई आरोप नहीं है। आप बैंक से कह सकते हैं कि रोक सिर्फ़ ${amount} तक सीमित की जाए।`,
+        ]
+      : [
+          `घबराइए मत। आपके खाते में सिर्फ़ एक पेमेंट के ${amount} पर रोक लगी है, पूरे खाते पर नहीं।`,
+          `यह रोक इसलिए लगी है क्योंकि इस पेमेंट की शिकायत दर्ज हुई है। यह आप पर कोई आरोप नहीं है।`,
+        ];
   return [
-    `घबराइए मत। आपके खाते में सिर्फ़ एक पेमेंट के ${amount} पर रोक लगी है, पूरे खाते पर नहीं।`,
-    `यह रोक इसलिए लगी है क्योंकि इस पेमेंट की शिकायत दर्ज हुई है। यह आप पर कोई आरोप नहीं है।`,
+    ...scope,
     c.saleTag
       ? `अच्छी बात यह है कि आपने उसी समय बता दिया था कि क्या बेचा: "${c.saleTag.transcript}"। यह सबूत पहले से दर्ज है।`
       : `इस पेमेंट पर बिक्री का विवरण दर्ज नहीं हुआ था, फिर भी पेमेंट का रिकॉर्ड मौजूद है।`,
     `आगे दो छोटे सवालों के जवाब दीजिए। फिर मैं बिक्री का प्रमाण पत्र और बैंक के लिए शिकायत का ड्राफ्ट तैयार करूँगा, जिसे आप पढ़कर खुद अपने बैंक में जमा करेंगे।`,
   ].join(" ");
+}
+
+function restrictionRequest(c: SaleCertificate): string {
+  const amount = inr(c.hold.heldAmountInr);
+  if (c.hold.scope === "debit_freeze") {
+    return `At present no withdrawals at all are allowed from my account, although the complaint concerns only this one payment of ${amount}. As I understand the procedure, a single reported payment calls for a hold on the reported amount [rule:hold-limited-to-amount]. I request that the restriction be limited to ${amount}, and that I be allowed to use the rest of my balance for my business.`;
+  }
+  return `I also request confirmation that the hold applies only to the reported amount of ${amount} and not to the rest of my balance [rule:hold-limited-to-amount].`;
 }
 
 export function grievanceLetter({ certificate: c, ownerName }: DraftFacts): string {
@@ -65,7 +82,7 @@ That payment was received in the ordinary course of my business:
 
 ${saleLine(c)} A sale certificate drawn from the payment company's records is attached as my explanation of this payment [rule:merchant-sale-details].
 
-I do not know the payer personally and had no reason to doubt the payment. I request that you file this grievance on the Grievance Redressal Module [rule:grievance-via-bank] within the time the procedure allows, and share its reference with me [rule:mha-procedure-2026]. I also request confirmation that the hold applies only to the reported amount of ${inr(c.hold.heldAmountInr)} and not to the rest of my balance [rule:hold-limited-to-amount], and the contact details of the police unit that ordered it [rule:police-contact-from-bank].
+I do not know the payer personally and had no reason to doubt the payment. I request that you file this grievance on the Grievance Redressal Module [rule:grievance-via-bank] within the time the procedure allows, and share its reference with me [rule:mha-procedure-2026]. ${restrictionRequest(c)} I also request the contact details of the police unit that ordered it [rule:police-contact-from-bank].
 
 I will provide any further document you need.
 

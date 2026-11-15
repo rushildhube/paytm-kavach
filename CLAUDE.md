@@ -34,7 +34,7 @@ Letter generators already exist (Wapas student prototype, lawyer/finance sites).
 | `agent/` | LLM prompts and drafting: explanation, grievance draft, escalation, mule screen |
 | `voice/` | Voice sale tagging: speech to text, item parsing, tagging threshold |
 | `templates/` | Document templates: sale certificate, grievance, escalation |
-| `frontend/` | Merchant-facing demo UI |
+| `frontend/` | Demo UI: four live screens (customer, Soundbox, merchant, bank) and the single-screen fallback |
 | `demo/` | Demo script, seeded scenario, "simulate day 22" controls |
 | `tests/` | Tests, including guardrail tests |
 | `tasks/` | `todo.md` (plan and progress) and `lessons.md` (corrections) |
@@ -47,6 +47,9 @@ Each folder has its own `CLAUDE.md` describing what belongs there.
 - **Tech stack:** Next.js full stack, TypeScript, one app at the repo root. Routes in `src/app` stay thin and import from `backend/`, `agent/`, `voice/` and `frontend/` (components) through path aliases, so the folder map above still holds.
 - **Voice and LLM:** Sarvam for both. The browser only records audio; Sarvam does speech to text, text to speech and the drafting (`sarvam-105b`), all called from server routes so the one `SARVAM_API_KEY` never reaches the browser.
 - **Build order:** the end-to-end ₹826 demo path first, thin but complete.
+- **Live demo on four screens** (branch `feat/multi-screen-demo`, issue #4, design in `docs/multi-screen-demo.md`): `/customer` pays, `/soundbox` announces and records the tag, `/merchant` handles the hold, `/bank` reports, restricts and jumps the clock. `/` stays as the single-screen fallback. The screens recreate the problem; the solution is the Soundbox tag and the merchant's hold flow.
+- **Demo brand (2026-11-15):** the UI uses **Saakshi** (साक्षी, "witness"), a fictional payments brand with an original logo, defined only in `frontend/brand.ts`. No Paytm logo or name appears in the UI; Paytm stays the company we pitch to in `docs/`. To rename, edit `brand.ts` only.
+- **Each screen sees only what its actor would see.** Screens call `/api/kavach` with a `role`; `snapshotFor(role)` in `backend/api.ts` decides the data. A fraud report reaches only the bank screen until a hold exists (no tipping off). Keep it that way when adding fields.
 
 ## Working together
 

@@ -1,8 +1,9 @@
 import { DISCLAIMER } from "./config";
 import { getHold } from "./holds";
+import { getInvoice } from "./invoices";
 import { getSaleTag, getTransaction } from "./ledger";
-import { store } from "./store";
-import type { Hold, SaleItem } from "./types";
+import { getMerchant } from "./store";
+import type { Hold, SaleItem, SaleTag } from "./types";
 
 export type SaleCertificate = {
   certificateId: string;
@@ -28,19 +29,42 @@ export type SaleCertificate = {
     secondsAfterPayment: number;
     transcript: string;
     items: SaleItem[];
+    source: SaleTag["source"];
+    /** How the tag was tied to this payment; absent on older records. */
+    boundBy: SaleTag["boundBy"] | null;
+    billId: string | null;
   } | null;
-  hold: Pick<Hold, "reference" | "type" | "heldAmountInr" | "placedAt">;
+  /** An invoice file the merchant attached at payment time: its fingerprint only. Null if none. */
+  invoice: {
+    attachedAt: string;
+    secondsAfterPayment: number;
+    sha256: string;
+    kind: string;
+    totalInr: number | null;
+  } | null;
+  hold: Pick<Hold, "reference" | "type" | "scope" | "heldAmountInr" | "placedAt">;
   provenance: string[];
   disclaimer: string;
+};
+
+/** How the description was tied to this payment, so a reader can judge its weight (#15, #19). */
+const BOUND_BY_LINE: Record<NonNullable<SaleTag["boundBy"]>, string> = {
+  bill: "The description is the bill the merchant created before the payment; the buyer paid that bill's QR.",
+  tap: "The merchant picked this payment on the Soundbox when recording the description.",
+  only_open: "This was the only payment waiting for a description when it was recorded.",
+  amount: "The amount the merchant said matched this payment and no other open payment.",
+  amount_and_name: "The amount and payer name the merchant said matched this payment and no other open payment.",
 };
 
 /** Pure assembly from records. No model involved. */
 export function buildCertificate(holdId: string, generatedAt: Date): SaleCertificate {
   const hold = getHold(holdId);
   const txn = getTransaction(hold.txnId);
-  const merchant = store().merchants.find((m) => m.id === txn.merchantId);
-  if (!merchant) throw new Error("merchant not found");
+  const merchant = getMerchant(txn.merchantId);
   const tag = getSaleTag(txn.id);
+  const invoice = getInvoice(txn.id);
+  const secondsAfterPayment = (at: string) =>
+    Math.round((Date.parse(at) - Date.parse(txn.at)) / 1000);
 
   return {
     certificateId: `KVC-${txn.id}`,
@@ -62,16 +86,27 @@ export function buildCertificate(holdId: string, generatedAt: Date): SaleCertifi
     saleTag: tag
       ? {
           recordedAt: tag.recordedAt,
-          secondsAfterPayment: Math.round(
-            (Date.parse(tag.recordedAt) - Date.parse(txn.at)) / 1000,
-          ),
+          secondsAfterPayment: secondsAfterPayment(tag.recordedAt),
           transcript: tag.transcript,
           items: tag.items,
+          source: tag.source,
+          boundBy: tag.boundBy ?? null,
+          billId: tag.billId ?? null,
+        }
+      : null,
+    invoice: invoice
+      ? {
+          attachedAt: invoice.attachedAt,
+          secondsAfterPayment: secondsAfterPayment(invoice.attachedAt),
+          sha256: invoice.sha256,
+          kind: invoice.kind,
+          totalInr: invoice.totalInr,
         }
       : null,
     hold: {
       reference: hold.reference,
       type: hold.type,
+      scope: hold.scope,
       heldAmountInr: hold.heldAmountInr,
       placedAt: hold.placedAt,
     },
@@ -80,6 +115,12 @@ export function buildCertificate(holdId: string, generatedAt: Date): SaleCertifi
       tag
         ? "The sale description is the merchant's own statement, recorded at payment time and before any hold. It cannot be added or edited later."
         : "No sale description was recorded at payment time for this payment.",
+      ...(tag?.boundBy ? [BOUND_BY_LINE[tag.boundBy]] : []),
+      ...(invoice
+        ? [
+            "An invoice file was attached by the merchant at payment time, before any hold. Only its SHA-256 fingerprint is kept, so the merchant's copy can be checked against it; its contents are the merchant's and are not verified by the payment company.",
+          ]
+        : []),
     ],
     disclaimer: DISCLAIMER,
   };

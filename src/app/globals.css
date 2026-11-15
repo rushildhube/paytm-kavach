@@ -4,9 +4,41 @@
 
 @theme inline {
   --font-sans: var(--font-latin), var(--font-devanagari), system-ui, sans-serif;
+  /* Brand palette. Values come from frontend/brand.ts via layout.tsx. */
+  --color-brand: var(--brand-primary);
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-tint: var(--brand-tint);
+  --color-brand-deep: var(--brand-deep);
 }
 
 body {
   font-family: var(--font-sans);
   color: #0f172a;
+}
+
+/* QR scanner sweep line (frontend/QrScanner.tsx) */
+@keyframes kavach-scan {
+  0% { top: 8%; }
+  50% { top: 90%; }
+  100% { top: 8%; }
+}
+.kavach-scanline {
+  animation: kavach-scan 2.4s ease-in-out infinite;
+}
+
+/* Success tick pop (frontend/CustomerApp.tsx) */
+@keyframes kavach-pop {
+  0% { transform: scale(0.3); opacity: 0; }
+  70% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.kavach-pop {
+  animation: kavach-pop 0.45s ease-out both;
+}
+
+/* Printable standee (/qr): print only the standee, no page chrome */
+@media print {
+  body { background: #fff !important; }
+  .no-print { display: none !important; }
 }

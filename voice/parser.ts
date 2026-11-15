@@ -22,12 +22,13 @@ const UNITS = new Set([
   "bottle", "बोतल", "dabba", "डिब्बा",
 ]);
 
+/** Devanagari digits to ASCII, so "१.५" reads as 1.5. */
+function asciiDigits(text: string): string {
+  return text.replace(/[०-९]/g, (d) => String(d.charCodeAt(0) - 0x0966));
+}
+
 function toNumber(word: string): number | null {
   if (/^\d+(\.\d+)?$/.test(word)) return Number(word);
-  // Devanagari digits
-  if (/^[०-९]+$/.test(word)) {
-    return Number([...word].map((c) => c.charCodeAt(0) - 0x0966).join(""));
-  }
   return NUMBERS[word] ?? null;
 }
 
@@ -37,8 +38,9 @@ function toNumber(word: string): number | null {
  * The raw transcript is stored alongside, so a weak parse loses nothing.
  */
 export function parseSaleItems(transcript: string): SaleItem[] {
-  return transcript
-    .toLowerCase()
+  return asciiDigits(transcript.toLowerCase())
+    // "2kg" / "2किलो" -> "2 kg" / "2 किलो"
+    .replace(/(\d)(?=[a-zऀ-ॿ])/g, "$1 ")
     // Sentence ends separate items too ("1 तेल। 2 किलो चीनी"); a dot inside a
     // number ("1.5 kilo") does not.
     .split(/[,;।!?]|\.(?!\d)|\s+aur\s+|\s+और\s+|\s+and\s+/)

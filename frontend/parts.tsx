@@ -2,6 +2,7 @@ import type { Draft } from "@agent/drafts";
 import type { SaleCertificate } from "@backend/certificate";
 import type { Rule } from "@backend/rules";
 import type { RuleAlert } from "@backend/watcher";
+import { BRAND } from "./brand";
 
 export const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
@@ -97,8 +98,8 @@ export function CertificateCard({ cert }: { cert: SaleCertificate }) {
         <span className="text-xs text-slate-500">{cert.certificateId}</span>
       </div>
 
-      <h4 className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-[#002E6E]">
-        From Paytm records
+      <h4 className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-brand-navy">
+        From {BRAND.name} records
       </h4>
       <dl className="divide-y divide-slate-100">
         <Row label="Shop" value={`${cert.merchant.shopName}, ${cert.merchant.city}`} />
@@ -118,6 +119,20 @@ export function CertificateCard({ cert }: { cert: SaleCertificate }) {
           <div className="text-base font-medium text-emerald-950">
             “{cert.saleTag.transcript}”
           </div>
+          {cert.saleTag.boundBy && (
+            <div className="mt-1 text-xs text-emerald-800">
+              {cert.saleTag.boundBy === "bill"
+                ? `From bill ${cert.saleTag.billId ?? ""}, created before the payment`
+                : `Matched by: ${
+                    {
+                      tap: "merchant picked this payment",
+                      only_open: "only open payment",
+                      amount: "spoken amount",
+                      amount_and_name: "spoken amount and name",
+                    }[cert.saleTag.boundBy]
+                  }`}
+            </div>
+          )}
           <ul className="mt-1 text-emerald-900">
             {cert.saleTag.items.map((it, i) => (
               <li key={i}>
@@ -134,6 +149,25 @@ export function CertificateCard({ cert }: { cert: SaleCertificate }) {
         <p className="mt-1 text-sm text-slate-600">
           No sale description was recorded for this payment.
         </p>
+      )}
+      {cert.invoice && (
+        <div className="mt-3">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Invoice attached at payment time
+          </h4>
+          <div className="mt-1 rounded-lg bg-sky-50 p-3 text-sm text-sky-950">
+            <div>
+              {cert.invoice.kind.toUpperCase()} file, attached {cert.invoice.secondsAfterPayment}s after the
+              payment, before the hold
+              {cert.invoice.totalInr !== null && <> · total ₹{cert.invoice.totalInr}</>}
+            </div>
+            <div className="mt-1 font-mono text-[11px] break-all">SHA-256 {cert.invoice.sha256}</div>
+            <div className="mt-1 text-xs text-sky-800">
+              Only the fingerprint is kept. The merchant&apos;s copy of the file can be checked against it;
+              its contents are not verified by {BRAND.name}.
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );

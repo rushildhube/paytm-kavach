@@ -1,3 +1,4 @@
+import { BRAND } from "@frontend/brand";
 import type { Merchant, Transaction, SaleTag } from "@backend/types";
 
 /**
@@ -41,6 +42,12 @@ export const merchants: Merchant[] = [
 ];
 
 export const DEMO_MERCHANT_ID = "m_kirana";
+
+/** The shop's UPI handle shown on its QR. Synthetic. */
+export const DEMO_PAYEE_VPA = `sharmakirana@${BRAND.vpaDomain}`;
+
+/** The buyer on the customer screen. Synthetic; masked before it is stored. */
+export const DEMO_PAYER_VPA = "vikram.demo@okdemo";
 
 /** The payment that the demo script revolves around. */
 export const DEMO_PAYMENT = {
