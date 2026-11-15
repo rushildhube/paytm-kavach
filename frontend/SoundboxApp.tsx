@@ -9,6 +9,7 @@ import { DEFAULT_VOICE_LANGUAGE, isVoiceLanguage, VOICE_LANGUAGES, type VoiceLan
 import { useRecorder } from "@voice/useRecorder";
 import { inr, when } from "./parts";
 import { enqueue, onSpeaking, pauseSpeech, prefetch, resumeSpeech, stopSpeaking, unlockAudio } from "./speech";
+import { DemoPill, MinusIcon, PAGE, PlusIcon, PowerIcon } from "./ui";
 import { useLive } from "./useLive";
 
 /** What a payment card needs. Candidates from tag-auto have the same shape. */
@@ -262,17 +263,15 @@ export default function SoundboxApp() {
             : { big: "", small: "" };
 
   return (
-    <div className="flex min-h-dvh flex-col items-center bg-gradient-to-b from-slate-200 to-slate-300 px-4 py-6">
-      {/* ---------- the device ---------- */}
+    <div className={`flex min-h-dvh flex-col items-center ${PAGE} px-4 py-6`}>
+      {/* ---------- the device: a white Soundbox in the brand colours ---------- */}
       <div className="relative w-full max-w-sm">
-        <div className="rounded-[2.25rem] bg-gradient-to-b from-brand-deep to-brand-navy p-3 shadow-[0_20px_40px_-12px_rgba(7,29,64,0.6)] ring-1 ring-black/20">
+        <div className="rounded-[2.25rem] bg-white p-3 shadow-[0_18px_40px_-14px_rgba(15,23,42,0.35)] ring-1 ring-slate-200">
           {/* top: brand plate, LED */}
-          <div className="flex items-center justify-between rounded-t-[1.75rem] rounded-b-xl bg-white px-4 py-2.5">
+          <div className="flex items-center justify-between rounded-t-[1.75rem] rounded-b-xl bg-brand-tint px-4 py-2.5">
             <BrandLogo size={26} />
             <div className="flex items-center gap-2">
-              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
-                Demo
-              </span>
+              <DemoPill />
               <span
                 aria-label={powered ? (recorder.recording ? "listening" : "on") : "off"}
                 className={`h-3 w-3 rounded-full ring-2 ring-white ${
@@ -289,7 +288,7 @@ export default function SoundboxApp() {
           </div>
 
           {/* LCD */}
-          <div className="mt-3 rounded-xl bg-[#c9d8b6] p-3 font-mono text-[#1d2a12] shadow-[inset_0_2px_6px_rgba(0,0,0,0.35)]">
+          <div className="mt-3 rounded-xl bg-brand-navy p-3 font-mono text-white shadow-[inset_0_2px_6px_rgba(0,0,0,0.35)]">
             <div className="flex justify-between text-[11px] opacity-70">
               <span className="truncate">{state?.shopName ?? "…"}</span>
               <span>{langName}</span>
@@ -297,17 +296,17 @@ export default function SoundboxApp() {
             <div className="mt-1 text-4xl font-bold tabular-nums tracking-wider">
               {powered ? (last ? inr(last.amountInr) : "₹ ----") : ""}
             </div>
-            <div className="mt-0.5 h-4 text-xs">
+            <div className="mt-0.5 h-4 text-xs text-brand">
               {powered && last ? (last.billId ? `${last.billId} ✓` : "RECEIVED ✓") : powered ? "READY" : ""}
             </div>
           </div>
 
           {/* speaker grille */}
-          <div className="relative mx-auto mt-4 aspect-square w-44 rounded-full bg-brand-navy p-3 shadow-[inset_0_3px_8px_rgba(0,0,0,0.6)]">
+          <div className="relative mx-auto mt-4 aspect-square w-44 rounded-full bg-slate-100 p-3 shadow-[inset_0_3px_8px_rgba(15,23,42,0.18)] ring-1 ring-slate-200">
             <div
-              className={`h-full w-full rounded-full transition-opacity ${speaking ? "opacity-100" : "opacity-70"}`}
+              className={`h-full w-full rounded-full text-brand-navy transition-opacity ${speaking ? "opacity-60" : "opacity-30"}`}
               style={{
-                backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.32) 1.6px, transparent 1.9px)",
+                backgroundImage: "radial-gradient(circle, currentColor 1.6px, transparent 1.9px)",
                 backgroundSize: "9px 9px",
                 WebkitMaskImage: "radial-gradient(circle, #000 68%, transparent 70%)",
                 maskImage: "radial-gradient(circle, #000 68%, transparent 70%)",
@@ -317,13 +316,13 @@ export default function SoundboxApp() {
           </div>
 
           {/* physical buttons */}
-          <div className="mt-4 flex justify-center gap-6 pb-1">
-            {["−", "⏻", "+"].map((b) => (
+          <div className="mt-4 flex justify-center gap-6 pb-1" aria-hidden>
+            {[MinusIcon, PowerIcon, PlusIcon].map((Icon, i) => (
               <span
-                key={b}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-deep text-sm text-white/70 shadow-[0_2px_0_rgba(0,0,0,0.45)]"
+                key={i}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-brand-navy shadow-[0_2px_0_rgba(15,23,42,0.12)] ring-1 ring-slate-200"
               >
-                {b}
+                <Icon className="h-4 w-4" />
               </span>
             ))}
           </div>
@@ -332,11 +331,13 @@ export default function SoundboxApp() {
         {!powered && (
           <button
             onClick={powerOn}
-            className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-[2.25rem] bg-black/80 text-white"
+            className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-[2.25rem] bg-white/75 text-brand-navy backdrop-blur-sm"
           >
-            <span className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-brand text-3xl">⏻</span>
+            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-brand text-white shadow-lg ring-8 ring-brand/20">
+              <PowerIcon className="h-9 w-9" />
+            </span>
             <span className="text-lg font-semibold">Tap to switch on</span>
-            <span className="text-xs text-slate-300">Needed once so the phone can play sound</span>
+            <span className="text-xs text-slate-600">Needed once so the phone can play sound</span>
           </button>
         )}
       </div>

@@ -17,12 +17,11 @@ import { ProofsTab } from "./merchant/proofs";
 import { SoundboxTab } from "./merchant/soundbox";
 import { Disclaimer, DraftCard, inr } from "./parts";
 import { speak as speakText, stopSpeaking } from "./speech";
+import { BTN } from "./ui";
 import { useLive } from "./useLive";
 
 const NO_ANSWERS: Answers = { lentAccount: null, receivedForCommission: null };
 
-const btn =
-  "rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 
 /**
  * The merchant's business app (brand from brand.ts) with Kavach.
@@ -280,8 +279,8 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
       <main
         className={
           controls
-            ? "mx-auto flex w-full max-w-md flex-col overflow-clip rounded-[2rem] border border-slate-200 bg-[#F3F6FA] shadow-xl"
-            : "flex min-h-dvh w-full flex-col bg-[#F3F6FA]"
+            ? "mx-auto flex w-full max-w-md flex-col overflow-clip rounded-[2rem] border border-slate-200 bg-slate-100 shadow-xl"
+            : "flex min-h-dvh w-full flex-col bg-slate-100"
         }
       >
         <AppBar
@@ -389,28 +388,28 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
             <button
               onClick={pay}
               disabled={busy !== null || !!hold || !!pending}
-              className={`${btn} bg-brand text-brand-navy`}
+              className={BTN.primary}
             >
               1 · {inr(DEMO_PAYMENT.amountInr)} payment arrives
             </button>
             <button
               onClick={triggerHold}
               disabled={busy !== null || !!hold || !latest}
-              className={`${btn} bg-red-600 text-white`}
+              className={BTN.danger}
             >
               2 · Hold placed on latest payment
             </button>
             <button
               onClick={simulateEscalationDay}
               disabled={busy !== null || !filed || tracker?.stage === "escalation_due"}
-              className={`${btn} bg-slate-800 text-white`}
+              className={BTN.navy}
             >
               3 · Simulate day {tracker?.escalateAfterDays ?? 22}
             </button>
             <button
               onClick={reset}
               disabled={busy !== null}
-              className={`${btn} border border-slate-300 text-slate-700`}
+              className={BTN.quiet}
             >
               Reset demo
             </button>
@@ -496,10 +495,10 @@ function LawWatch({
           : `${flagged.length} rule${flagged.length > 1 ? "s" : ""} flagged: ${flagged.map(([id]) => id).join(", ")}`}
       </p>
       <div className="mt-3 flex flex-col gap-2">
-        <button onClick={onCheck} disabled={busy} className={`${btn} border border-slate-300 text-slate-700`}>
+        <button onClick={onCheck} disabled={busy} className={BTN.quiet}>
           Check feeds now
         </button>
-        <button onClick={onSimulate} disabled={busy} className={`${btn} border border-amber-400 text-amber-800`}>
+        <button onClick={onSimulate} disabled={busy} className={BTN.outline}>
           4 · Simulate a change to the MHA procedure
         </button>
       </div>

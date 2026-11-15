@@ -8,6 +8,7 @@ import { BrandLogo } from "./BrandLogo";
 import { BRAND } from "./brand";
 import { QrScanner } from "./QrScanner";
 import { parseUpiUri, UPI_REJECT_TEXT } from "./upi";
+import { DemoPill } from "./ui";
 import { useLive } from "./useLive";
 
 type Step = "home" | "scan" | "lookup" | "amount" | "pin" | "paying" | "done" | "refused";
@@ -153,7 +154,7 @@ export default function CustomerApp() {
             <BrandLogo size={24} />
             <DemoBadge />
           </header>
-          <main className="flex-1 bg-[#F5F7FA] p-4">
+          <main className="flex-1 bg-slate-100 p-4">
             <section className="rounded-2xl bg-white p-4 shadow-sm">
               <h2 className="text-sm font-bold text-brand-navy">UPI Money Transfer</h2>
               <div className="mt-4 grid grid-cols-4 gap-2 text-center text-[11px] leading-tight text-slate-700">
@@ -280,13 +281,13 @@ export default function CustomerApp() {
           )}
 
           {(step === "pin" || step === "paying") && (
-            <main className="flex min-h-dvh flex-col bg-[#F2F2F2]">
+            <main className="flex min-h-dvh flex-col bg-slate-100">
               <div className="flex items-center justify-between bg-white px-4 py-3 text-sm">
                 <span className="font-semibold text-slate-800">Demo Bank</span>
                 <DemoBadge />
                 <span className="text-slate-500">XXXX0042</span>
               </div>
-              <div className="flex items-center justify-between bg-[#E8EAF6] px-4 py-3 text-sm">
+              <div className="flex items-center justify-between bg-brand-tint px-4 py-3 text-sm">
                 <div>
                   <div className="text-slate-500">To:</div>
                   <div className="font-semibold text-slate-900">{payee.shopName}</div>
@@ -345,7 +346,7 @@ export default function CustomerApp() {
           <div className="mt-6 text-5xl font-bold text-slate-900">{inr(paid.amountInr)}</div>
           <div className="mt-2 text-lg font-semibold text-[#21C17A]">Paid Successfully</div>
           <div className="mt-1 text-slate-700">to {payee.shopName}</div>
-          <div className="mt-6 w-full rounded-xl bg-[#F5F7FA] p-4 text-sm text-slate-600">
+          <div className="mt-6 w-full rounded-xl bg-slate-100 p-4 text-sm text-slate-600">
             <div className="flex justify-between">
               <span>Date &amp; time</span>
               <span className="font-medium text-slate-800">{when(paid.at)}</span>
@@ -384,11 +385,7 @@ export default function CustomerApp() {
 }
 
 function DemoBadge() {
-  return (
-    <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
-      Demo
-    </span>
-  );
+  return <DemoPill />;
 }
 
 function QrIcon({ size = 28 }: { size?: number }) {

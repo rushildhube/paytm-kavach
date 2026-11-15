@@ -6,6 +6,7 @@ import { DEMO_PAYEE_VPA } from "@data/seed";
 import { inr, when } from "./parts";
 import { QrCode } from "./QrCode";
 import { buildUpiUri, MAX_UPI_AMOUNT_INR } from "./upi";
+import { DemoPill } from "./ui";
 import { useLive } from "./useLive";
 
 type Bill = Snapshot["bills"][number];
@@ -60,7 +61,7 @@ export default function BillPanel() {
           <h2 className="text-xl font-bold text-brand-navy">बिल QR बनाएँ</h2>
           <p className="text-xs text-slate-500">Bill QR · proof of sale before the money moves</p>
         </div>
-        <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">Demo</span>
+        <DemoPill />
       </header>
 
       {!bill && (
