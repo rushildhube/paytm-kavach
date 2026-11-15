@@ -45,6 +45,8 @@ Not confirmed with Paytm. Treat D as a future option, not the plan.
 
 ### Chosen direction: match by amount, then by payer name
 
+> **Decision 2026-11-15 (#19): the payer-name tiebreak is dropped.** What is built: a bill made before the payment binds by bill id; otherwise the spoken amount (Hindi or English number words, or digits) binds to the one open payment with that amount; otherwise the merchant taps. The name step below is kept as the record of what was considered. It would hold buyer personal data for a case a tap settles in a second.
+
 The merchant has a static QR and a Soundbox. The tag says which payment it is for:
 
 > "Aath sau chhabbis, Ramesh: do kilo cheeni, ek tel."
@@ -104,7 +106,7 @@ Kavach's whole claim is that the proof was recorded **at payment time** and tied
 
 ### Leaning
 
-Offer A now (it is the voice tag with a different input). Bind the invoice to its payment the same way as a voice tag: by the invoice total, then by the payer name if totals clash, else a tap. B needs dynamic QR, which small merchants likely do not have (see Problem 1), so it stays a later option. Allow D only if it is clearly separated and labelled, or not at all; it is the feature most likely to be abused and the one that most weakens the pitch.
+Offer A now (it is the voice tag with a different input). As built (#22): the merchant attaches the file to a chosen open payment, an optional total must equal the payment, and only a SHA-256 fingerprint is stored; no payer-name matching. B needs dynamic QR, which small merchants likely do not have (see Problem 1), so it stays a later option. Allow D only if it is clearly separated and labelled, or not at all; it is the feature most likely to be abused and the one that most weakens the pitch.
 
 Whatever is chosen:
 

@@ -1,5 +1,6 @@
 import type {
   Bill,
+  DataPurpose,
   FraudReport,
   Grievance,
   Hold,
@@ -193,6 +194,20 @@ export const rows = {
     const r = one<TagRow>("SELECT * FROM sale_tags WHERE txn_id = ?", txnId);
     return r ? toTag(r) : undefined;
   },
+
+  dataPurposes: (): DataPurpose[] =>
+    all<{ table_name: string; column_name: string; data: string; purpose: string; minimised: string; retention: string }>(
+      "SELECT * FROM data_purposes ORDER BY rowid",
+    ).map((r) =>
+      Object.freeze({
+        table: r.table_name,
+        column: r.column_name,
+        data: r.data,
+        purpose: r.purpose,
+        minimised: r.minimised,
+        retention: r.retention,
+      }),
+    ),
 
   invoice: (txnId: string) => {
     const r = one<InvoiceRow>("SELECT * FROM invoices WHERE txn_id = ?", txnId);

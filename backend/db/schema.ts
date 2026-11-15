@@ -133,7 +133,49 @@ export const MIGRATIONS: readonly string[] = [
   BEGIN SELECT RAISE(ABORT, 'invoices are append-only'); END;
   `,
 
-  // 3: a sale description the merchant types on the phone for a payment that
+  // 3: why each piece of buyer-related data is held, and for how long
+  // (issue #25, DPDP minimisation). This is Kavach's own policy, not a legal
+  // citation: the DPDP Act is not yet verified in rules/. To change a row,
+  // append a migration; the table refuses UPDATE and DELETE.
+  `
+  CREATE TABLE data_purposes (
+    table_name  TEXT NOT NULL,
+    column_name TEXT NOT NULL,
+    data        TEXT NOT NULL,
+    purpose     TEXT NOT NULL,
+    minimised   TEXT NOT NULL,
+    retention   TEXT NOT NULL,
+    PRIMARY KEY (table_name, column_name)
+  );
+  CREATE TRIGGER data_purposes_no_update BEFORE UPDATE ON data_purposes
+  BEGIN SELECT RAISE(ABORT, 'data purposes change only by migration'); END;
+  CREATE TRIGGER data_purposes_no_delete BEFORE DELETE ON data_purposes
+  BEGIN SELECT RAISE(ABORT, 'data purposes change only by migration'); END;
+
+  INSERT INTO data_purposes VALUES
+  ('transactions', 'payer_vpa_masked',
+   'The payer''s UPI handle, masked (for example vi***@okdemo).',
+   'Lets a bank or police officer match the payment on the sale certificate to their own record of it.',
+   'Masked before it is written; the database refuses a handle without a mask. No payer name, phone or account number is stored.',
+   'Kept with the payment while it may be needed as proof of sale, that is until any hold and grievance on it are closed. Automatic erasure after that is not built yet; in the demo, Reset erases everything.'),
+  ('sale_tags', 'transcript',
+   'What the merchant said about the goods at payment time.',
+   'Proof of what was sold, recorded before any hold.',
+   'The Soundbox asks what was sold, never who bought it, and records only the merchant. The buyer''s voice and identity are not captured.',
+   'Kept with the payment while it may be needed as proof of sale, that is until any hold and grievance on it are closed. Automatic erasure after that is not built yet; in the demo, Reset erases everything.'),
+  ('bills', 'text',
+   'The items the merchant typed or said when making a bill.',
+   'Becomes the sale tag when the bill is paid: proof of what was sold.',
+   'Items only. The bill QR carries no item text and no buyer details.',
+   'Kept with the payment while it may be needed as proof of sale, that is until any hold and grievance on it are closed. Automatic erasure after that is not built yet; in the demo, Reset erases everything.'),
+  ('invoices', 'sha256',
+   'A SHA-256 fingerprint of an invoice file. The file itself may show the buyer''s name, phone or GSTIN.',
+   'Shows later that the merchant''s copy is the file attached at the time of sale.',
+   'The file and its name are never stored, only the fingerprint, which cannot be turned back into the file.',
+   'Kept with the payment while it may be needed as proof of sale, that is until any hold and grievance on it are closed. Automatic erasure after that is not built yet; in the demo, Reset erases everything.');
+  `,
+
+  // 4: a sale description the merchant types on the phone for a payment that
   // came without a bill ("typed"). SQLite cannot change a CHECK, so the table is
   // rebuilt with its rows and both append-only triggers. Still only inside the
   // tag window, through recordSaleTag.
