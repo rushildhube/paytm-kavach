@@ -281,6 +281,7 @@ export default function KavachApp() {
                 title="Grievance to your bank"
                 draft={packet.grievance}
                 filename={`grievance-${packet.certificate.hold.reference}.txt`}
+                alerts={state.lawWatch.alertsByRule}
               />
               {!filed && (
                 <button
@@ -299,31 +300,27 @@ export default function KavachApp() {
             <section className="rounded-xl border border-slate-200 bg-white p-4">
               <h3 className="font-semibold text-slate-900">Grievance tracker</h3>
               <ol className="mt-2 space-y-2 text-sm">
-                {state.ladder.steps.map((step, i) => {
-                  const active =
-                    (i === 0 && tracker.stage === "awaiting_reply") ||
-                    (i === 1 && tracker.stage === "escalation_due");
-                  return (
-                    <li
-                      key={step.level}
-                      className={`rounded-lg p-2 ${active ? "bg-blue-50 font-medium text-[#002E6E]" : "text-slate-500"}`}
-                    >
-                      {step.level}. {step.to}
-                    </li>
-                  );
-                })}
+                {state.ladder.steps.map((step, i) => (
+                  <li
+                    key={step.level}
+                    className={`rounded-lg p-2 ${i === tracker.currentStep ? "bg-blue-50 font-medium text-[#002E6E]" : "text-slate-500"}`}
+                  >
+                    {step.level}. {step.to}
+                    <div className="text-[11px] font-normal">{step.deadline}</div>
+                  </li>
+                ))}
               </ol>
               <p className="mt-2 text-sm text-slate-700">
-                Day {tracker.daysSinceFiled} since you filed.{" "}
+                Day {tracker.daysSinceFiled} since you complained at your bank.{" "}
                 {tracker.stage === "escalation_due"
-                  ? `No reply after ${tracker.escalateAfterDays} days. An escalation draft is ready below.`
-                  : `If there is no reply by day ${tracker.escalateAfterDays}, Kavach will draft an escalation.`}
+                  ? `No decision after ${tracker.escalateAfterDays} days. A letter to the next level is ready below.`
+                  : `If there is no decision by day ${tracker.escalateAfterDays}, Kavach will draft a letter to the next level.`}
               </p>
-              {state.ladder.placeholder && (
-                <p className="mt-1 text-[11px] text-amber-700">
-                  The {tracker.escalateAfterDays}-day figure is a demo placeholder, not a verified deadline.
-                </p>
-              )}
+              <p className="mt-1 text-[11px] text-slate-500">
+                {state.ladder.placeholder
+                  ? `The ${tracker.escalateAfterDays}-day figure is a demo placeholder, not a verified deadline.`
+                  : state.ladder.note}
+              </p>
             </section>
           )}
 
@@ -332,6 +329,7 @@ export default function KavachApp() {
               title="Escalation letter"
               draft={escalation}
               filename={`escalation-${hold?.reference ?? "draft"}.txt`}
+              alerts={state.lawWatch.alertsByRule}
             />
           )}
 
@@ -439,8 +437,59 @@ export default function KavachApp() {
           <div>Speech (Sarvam): {state.speechConfigured ? "on" : "off"}</div>
           {busy && <div className="text-slate-700">Working: {busy}…</div>}
         </dl>
+        <LawWatch
+          watch={state.lawWatch}
+          busy={busy !== null}
+          onCheck={() => call({ action: "check-feeds" })}
+          onSimulate={() => call({ action: "simulate-law-change" })}
+        />
       </aside>
     </div>
+  );
+}
+
+function LawWatch({
+  watch,
+  busy,
+  onCheck,
+  onSimulate,
+}: {
+  watch: Snapshot["lawWatch"];
+  busy: boolean;
+  onCheck: () => void;
+  onSimulate: () => void;
+}) {
+  const flagged = Object.entries(watch.alertsByRule);
+  return (
+    <section className="mt-6 border-t border-slate-200 pt-4">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Law watch</h2>
+      <p className="mt-1 text-xs text-slate-500">
+        Checks official feeds every {watch.pollMinutes} min. A match flags the rule for review; a person
+        updates the rules table.
+      </p>
+      <ul className="mt-2 space-y-0.5 text-xs text-slate-600">
+        {watch.feeds.map((f) => (
+          <li key={f.id}>
+            {"ok" in f && f.ok === false ? "⚠" : "ok" in f && f.ok ? "✓" : "…"} {f.name}
+            {"items" in f && f.ok ? ` · ${f.items} items` : ""}
+            {"error" in f && f.error ? ` · ${f.error}` : ""}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs font-medium text-slate-700">
+        {flagged.length === 0
+          ? "No rule flagged."
+          : `${flagged.length} rule${flagged.length > 1 ? "s" : ""} flagged: ${flagged.map(([id]) => id).join(", ")}`}
+      </p>
+      <div className="mt-3 flex flex-col gap-2">
+        <button onClick={onCheck} disabled={busy} className={`${btn} border border-slate-300 text-slate-700`}>
+          Check feeds now
+        </button>
+        <button onClick={onSimulate} disabled={busy} className={`${btn} border border-amber-400 text-amber-800`}>
+          4 · Simulate a change to the MHA procedure
+        </button>
+      </div>
+    </section>
   );
 }
 
