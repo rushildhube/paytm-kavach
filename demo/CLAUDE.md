@@ -28,7 +28,7 @@ Everything needed to run the live demo reliably in front of judges.
 
 ## Rules for this folder
 
-- The demo must be repeatable from a single reset (the Reset demo button; it reseeds the in-memory store and clears simulated alerts).
+- The demo must be repeatable from a single reset (the Reset demo button; it drops and reseeds the SQLite database and clears simulated alerts).
 - Keep a fully offline fallback path; never depend on live speech recognition or a live model call working on stage.
 - The demo shows the same guardrails as the product: disclaimers visible, merchant files the draft, nothing auto-sent.
 - Demo data is synthetic and comes from `data/`.
