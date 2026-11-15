@@ -1,9 +1,9 @@
 import { parseSaleItems } from "@voice/parser";
-import { nextCounter, run, tx } from "./db/connection";
+import { nextCounter, one, run, tx } from "./db/connection";
 import { rows } from "./db/rows";
 import { LedgerError } from "./ledger";
 import { activeMerchant, now } from "./store";
-import type { Bill } from "./types";
+import type { Bill, SaleItem } from "./types";
 
 /**
  * Bill-first tagging (issue #15). The merchant makes a bill for an amount
@@ -106,4 +106,65 @@ export function merchantBills(): Bill[] {
     .bills(activeMerchant().id)
     .reverse()
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+}
+
+/**
+ * The bill the counter Soundbox is showing (issue #31). "qr": its screen
+ * swaps the shop QR for this bill's QR. "voice": it also says "please pay ₹X
+ * for …" once. The buyer then pays through the normal `pay {billId}` path, so
+ * binding is unchanged. Only a pointer is stored (in `meta`); the request is
+ * worked out on every read, so paying or cancelling the bill clears it.
+ */
+export type SoundboxRequest = {
+  billId: string;
+  amountInr: number;
+  text: string;
+  items: SaleItem[];
+  mode: "qr" | "voice";
+  /** Changes on every send, so the box speaks a request once per send. */
+  nonce: string;
+};
+
+let sends = 0;
+const requestKey = (merchantId: string) => `soundbox_request:${merchantId}`;
+
+export function sendBillToSoundbox(billId: string, mode: SoundboxRequest["mode"]): SoundboxRequest {
+  return tx(() => {
+    const bill = ownBill(billId);
+    if (bill.status !== "open") throw new LedgerError("only an open bill can be sent to the Soundbox");
+    const value = JSON.stringify({ billId: bill.id, mode, nonce: `${bill.id}:${Date.now()}:${++sends}` });
+    run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", requestKey(bill.merchantId), value);
+    const request = soundboxRequest();
+    if (!request) throw new Error("soundbox request was not stored");
+    return request;
+  });
+}
+
+/** Back to the shop QR. */
+export function clearSoundbox(): void {
+  run("DELETE FROM meta WHERE key = ?", requestKey(activeMerchant().id));
+}
+
+/** The active merchant's open bill on the Soundbox, or null. */
+export function soundboxRequest(): SoundboxRequest | null {
+  const merchantId = activeMerchant().id;
+  const row = one<{ value: string }>("SELECT value FROM meta WHERE key = ?", requestKey(merchantId));
+  if (!row) return null;
+  let ptr: { billId?: unknown; mode?: unknown; nonce?: unknown };
+  try {
+    ptr = JSON.parse(row.value);
+  } catch {
+    return null;
+  }
+  if (typeof ptr.billId !== "string") return null;
+  const bill = rows.bill(ptr.billId);
+  if (!bill || bill.status !== "open" || bill.merchantId !== merchantId) return null;
+  return {
+    billId: bill.id,
+    amountInr: bill.amountInr,
+    text: bill.text,
+    items: bill.items,
+    mode: ptr.mode === "voice" ? "voice" : "qr",
+    nonce: typeof ptr.nonce === "string" ? ptr.nonce : bill.id,
+  };
 }

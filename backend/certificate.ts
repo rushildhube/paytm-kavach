@@ -115,7 +115,11 @@ export function buildCertificate(holdId: string, generatedAt: Date): SaleCertifi
       tag
         ? "The sale description is the merchant's own statement, recorded at payment time and before any hold. It cannot be added or edited later."
         : "No sale description was recorded at payment time for this payment.",
-      ...(tag?.boundBy ? [BOUND_BY_LINE[tag.boundBy]] : []),
+      ...(tag?.source === "typed"
+        ? ["The payment came without a bill; the merchant typed this description for it on their phone, inside the recording window after the payment."]
+        : tag?.boundBy
+          ? [BOUND_BY_LINE[tag.boundBy]]
+          : []),
       ...(invoice
         ? [
             "An invoice file was attached by the merchant at payment time, before any hold. Only its SHA-256 fingerprint is kept, so the merchant's copy can be checked against it; its contents are the merchant's and are not verified by the payment company.",

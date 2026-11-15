@@ -128,6 +128,7 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
       setTagTarget(txnId);
       void saveTag(txnId, DEMO_PAYMENT.spokenTag, "recorded_clip");
     },
+    onWriteBill: async (txnId, text) => (await call({ action: "bill-for-payment", txnId, text })) !== null,
   };
 
   // ---- hold flow -----------------------------------------------------------
@@ -172,8 +173,10 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
 
   // ---- bills and settings --------------------------------------------------
 
-  const createBill = async (amountInr: number, text: string) =>
-    (await call<Bill>({ action: "bill-create", amountInr, text })) !== null;
+  const createBill = async (amountInr: number, text: string, soundbox?: "qr" | "voice") =>
+    (await call<Bill>({ action: "bill-create", amountInr, text, ...(soundbox ? { soundbox } : {}) })) !== null;
+  const sendToSoundbox = (billId: string, mode: "qr" | "voice") =>
+    void call({ action: "bill-to-soundbox", billId, mode });
   const cancelBill = (billId: string) => void call({ action: "bill-cancel", billId });
   const setLanguage = (language: string) => void call({ action: "settings", language });
 
@@ -344,6 +347,8 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
               busy={busy}
               onCreate={createBill}
               onCancel={cancelBill}
+              soundboxBillId={state.soundboxBillId}
+              onSendToSoundbox={sendToSoundbox}
               renderQr={(b: Bill) => (
                 <div className="flex flex-col items-center rounded-2xl border-4 border-brand bg-white p-3">
                   <QrCode

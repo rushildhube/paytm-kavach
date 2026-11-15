@@ -121,7 +121,9 @@ export function CertificateCard({ cert }: { cert: SaleCertificate }) {
           </div>
           {cert.saleTag.boundBy && (
             <div className="mt-1 text-xs text-emerald-800">
-              {cert.saleTag.boundBy === "bill"
+              {cert.saleTag.source === "typed"
+                ? "Paid without a bill; the merchant wrote this on the phone right after the payment"
+                : cert.saleTag.boundBy === "bill"
                 ? `From bill ${cert.saleTag.billId ?? ""}, created before the payment`
                 : `Matched by: ${
                     {

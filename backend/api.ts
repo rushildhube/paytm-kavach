@@ -12,12 +12,15 @@ import { VOICE_LANGUAGES } from "@voice/languages";
 import {
   BILL_ID_PATTERN,
   cancelBill,
+  clearSoundbox,
   createBill,
   getBill,
   MAX_BILL_INR,
   merchantBills,
   ownBill,
+  sendBillToSoundbox,
   settleBill,
+  soundboxRequest,
 } from "./bills";
 import { buildCertificate, type SaleCertificate } from "./certificate";
 import {
@@ -120,6 +123,7 @@ export function snapshot() {
     tagWindowSeconds: TAG_WINDOW_SECONDS,
     transactions: merchantTransactions(),
     bills: merchantBills(),
+    soundboxBillId: soundboxRequest()?.billId ?? null,
     settings: { language: merchant.language },
     voiceLanguages: VOICE_LANGUAGES,
     hold,
@@ -138,6 +142,10 @@ export function soundboxSnapshot() {
   return {
     epoch: epoch(),
     shopName: activeMerchant().shopName,
+    // The standing shop QR printed on the box's screen; a bill request swaps it.
+    payee: { shopName: activeMerchant().shopName, vpa: DEMO_PAYEE_VPA },
+    // The bill (amount and what is sold) the buyer is asked to pay, or null.
+    request: soundboxRequest(),
     language: activeMerchant().language,
     thresholdInr: TAG_THRESHOLD_INR,
     tagWindowSeconds: TAG_WINDOW_SECONDS,
@@ -265,8 +273,14 @@ const ActionSchema = z.discriminatedUnion("action", [
   act("bill-create", {
     amountInr: z.number().positive().max(MAX_BILL_INR),
     text: z.string().max(300).optional(),
+    /** Also put the bill on the counter Soundbox: QR only, or QR and a spoken request. */
+    soundbox: z.enum(["qr", "voice"]).optional(),
   }),
   act("bill-cancel", { billId }),
+  act("bill-to-soundbox", { billId, mode: z.enum(["qr", "voice"]) }),
+  act("soundbox-clear", {}),
+  act("bill-voice", { transcript: z.string().trim().min(1).max(MAX_TRANSCRIPT_CHARS) }),
+  act("bill-for-payment", { txnId: id, text: z.string().trim().min(1).max(300) }),
   act("bill-lookup", { billId }),
   act("report", { txnId: id }),
   act("hold", { txnId: id, scope: z.enum(["lien", "debit_freeze"]).optional() }),
@@ -433,8 +447,48 @@ export async function handle(raw: unknown) {
     case "settings":
       result = { language: setMerchantLanguage(activeMerchant().id, input.language) };
       break;
-    case "bill-create":
-      result = createBill(input.amountInr, input.text ?? "");
+    case "bill-create": {
+      const { amountInr, text, soundbox } = input;
+      result = tx(() => {
+        const bill = createBill(amountInr, text ?? "");
+        if (soundbox) sendBillToSoundbox(bill.id, soundbox);
+        return bill;
+      });
+      break;
+    }
+    case "bill-to-soundbox":
+      result = sendBillToSoundbox(input.billId, input.mode);
+      break;
+    case "soundbox-clear":
+      clearSoundbox();
+      break;
+    case "bill-voice": {
+      // Spoken on the Soundbox: "826 रुपये, दो किलो आटा". The bill amount is the
+      // largest number heard (quantities are smaller); the box shows it before
+      // anyone pays, and the merchant can cancel it there.
+      const amounts = spokenAmountsInr(input.transcript).filter((a) => a > 0 && a <= MAX_BILL_INR);
+      if (amounts.length === 0) throw new LedgerError("no amount heard; say the amount, then what is sold");
+      const amountInr = Math.max(...amounts);
+      const transcript = input.transcript;
+      result = tx(() => {
+        const bill = createBill(amountInr, transcript);
+        sendBillToSoundbox(bill.id, "voice");
+        return bill;
+      });
+      break;
+    }
+    case "bill-for-payment":
+      // A payment that came without a bill: the merchant writes what was sold
+      // on the phone. Same rules as any tag: inside the window, before a hold,
+      // once. Labelled "typed", never as a bill made before the payment.
+      ownTransaction(input.txnId);
+      result = recordSaleTag({
+        txnId: input.txnId,
+        transcript: input.text,
+        items: parseSaleItems(input.text),
+        source: "typed",
+        boundBy: "tap",
+      });
       break;
     case "bill-cancel":
       result = cancelBill(input.billId);
