@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { BRAND } from "./brand";
+import { BrandLogo } from "./BrandLogo";
 
 /**
  * Full-screen camera QR scanner in the style of Paytm's "Scan any QR".
@@ -143,7 +144,10 @@ export function QrScanner({
           ←
         </button>
         <span className="text-lg font-semibold">Scan any QR</span>
-        <span className="ml-auto rounded bg-white/20 px-2 py-0.5 text-[10px] uppercase tracking-wide">Demo</span>
+        <span className="ml-auto flex items-center gap-2">
+          <BrandLogo variant="mark" size={22} />
+          <span className="rounded bg-white/20 px-2 py-0.5 text-[10px] uppercase tracking-wide">Demo</span>
+        </span>
       </header>
 
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6">
