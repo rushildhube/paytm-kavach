@@ -137,8 +137,10 @@ export function soundboxSnapshot() {
     thresholdInr: TAG_THRESHOLD_INR,
     tagWindowSeconds: TAG_WINDOW_SECONDS,
     speechConfigured: sarvamConfigured(),
+    // Every payment still waiting for a tag, plus the five newest, so a burst of
+    // payments never pushes an open one off the box (#15).
     payments: merchantTransactions()
-      .slice(0, 5)
+      .filter((t, i) => t.canTag || i < 5)
       .map((t) => ({
         id: t.id,
         amountInr: t.amountInr,
