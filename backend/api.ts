@@ -5,6 +5,7 @@ import {
   LEGAL_AID_REFERRAL_HI,
   type DraftFacts,
 } from "@templates/drafts";
+import { spokenAmountsInr } from "@voice/amounts";
 import { parseSaleItems } from "@voice/parser";
 import { sarvamConfigured } from "@voice/sarvam";
 import { VOICE_LANGUAGES } from "@voice/languages";
@@ -213,11 +214,6 @@ function factsFor(holdId: string): DraftFacts {
   };
 }
 
-/** Whole-number rupee amounts written as digits in a transcript ("826", "₹1,200"). */
-function spokenAmounts(transcript: string): number[] {
-  return [...transcript.matchAll(/\d[\d,]*(?:\.\d+)?/g)].map((m) => Number(m[0].replace(/,/g, "")));
-}
-
 const VPA = /^[\w.-]{2,64}@[\w.-]{2,32}$/;
 
 /** Longest spoken tag kept. A sale is one short utterance. */
@@ -379,7 +375,8 @@ export async function handle(raw: unknown) {
       let target = open.length === 1 ? open[0] : undefined;
       let method: "only_open" | "amount" = "only_open";
       if (!target) {
-        const spoken = spokenAmounts(input.transcript);
+        // Digits or number words in Hindi or English ("आठ सौ छब्बीस", "aath sau chhabbis").
+        const spoken = spokenAmountsInr(input.transcript);
         const hits = open.filter((t) => spoken.includes(t.amountInr));
         if (hits.length === 1) {
           target = hits[0];
