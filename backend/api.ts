@@ -9,7 +9,7 @@ import { spokenAmountsInr } from "@voice/amounts";
 import { parseSaleItems } from "@voice/parser";
 import { sarvamConfigured } from "@voice/sarvam";
 import { isVoiceLanguage, VOICE_LANGUAGES } from "@voice/languages";
-import { cancelBill, createBill, getBill, merchantBills, settleBill } from "./bills";
+import { cancelBill, createBill, getBill, merchantBills, ownBill, settleBill } from "./bills";
 import { buildCertificate, type SaleCertificate } from "./certificate";
 import {
   DISCLAIMER,
@@ -34,6 +34,7 @@ import { checkFeeds, clearDemoAlerts, ensureWatcher, injectDemoItem, watchStatus
 import {
   activeMerchant,
   advanceClock,
+  getMerchant,
   now,
   resetStore,
   setActiveMerchant,
@@ -313,7 +314,8 @@ export async function handle(raw: unknown) {
           : DEMO_PAYMENT.payerVpaMasked;
       if (input.billId) {
         // Bill-first: the bill was made before the payment, so it becomes the tag.
-        const bill = getBill(input.billId);
+        // Checked before the payment is recorded, so a refused bill leaves no payment behind.
+        const bill = ownBill(input.billId);
         if (bill.status !== "open") throw new LedgerError("this bill is not open");
         if (input.amountInr !== undefined && Math.abs(input.amountInr - bill.amountInr) > 0.001) {
           throw new LedgerError("amount does not match the bill");
@@ -401,7 +403,8 @@ export async function handle(raw: unknown) {
         id: bill.id,
         amountInr: bill.amountInr,
         status: bill.status,
-        shopName: activeMerchant().shopName,
+        // The shop that made the bill, not whichever merchant the demo is showing.
+        shopName: getMerchant(bill.merchantId).shopName,
       };
       break;
     }
