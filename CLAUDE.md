@@ -48,6 +48,14 @@ Each folder has its own `CLAUDE.md` describing what belongs there.
 - **Voice and LLM:** Sarvam for both. The browser only records audio; Sarvam does speech to text, text to speech and the drafting (`sarvam-105b`), all called from server routes so the one `SARVAM_API_KEY` never reaches the browser.
 - **Build order:** the end-to-end ₹826 demo path first, thin but complete.
 
+## Working together
+
+Two people (and their agents) work on separate branches. Coordination lives in GitHub issues on `rushildhube/paytm-kavach`.
+
+- At the start of a session, run `gh issue list` and read the issues for the area you are touching.
+- When you change something another branch depends on (a schema, an API action, a snapshot field), comment on the matching issue.
+- Reference the issue in commits (`refs #N`) and close it when the work is merged to `main`.
+
 ## Caveat on facts
 
 The legal and market facts in `docs/` came from a research conversation in November 2026. Verify each against its primary source before it enters `rules/` or the pitch deck.
