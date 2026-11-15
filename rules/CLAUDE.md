@@ -4,18 +4,24 @@ The verified rules table. This is the single source of legal and procedural fact
 
 ## What belongs here
 
-- Structured data files (JSON or YAML) with one entry per rule. Each entry has:
-  - `id` — stable identifier
-  - `instrument` — e.g. BNSS s.106, Home Ministry procedure 2 Jan 2026
-  - `status` — `statute`, `contested`, `administrative`, `binding_direction`, or `draft`
-  - `summary` — plain-language statement of what it does
-  - `applies_when` — the condition under which the rule is relevant
-  - `source_url` and `source_name`
-  - `last_checked` — ISO date
-  - `effective_from` where relevant
-- Deadlines and the grievance ladder: who to approach, in what order, and after how many days to escalate (this drives the tracker and the "day 22" escalation).
-- Hold types: police-initiated hold limited to the reported amount, and the upcoming bank-initiated hold (flagged transactions of ₹1,000 or more, 20 days to explain, lifted on day 31 unless police instruct otherwise, 60 days at most; still a draft).
-- A schema file and a validator that rejects entries missing a source or a `last_checked` date.
+- One JSON file of rule entries plus the grievance ladder (`rules.json`).
+- The list of official feeds the law watcher polls, and which keywords map to which rules (`feeds.json`).
+- Hold types: police-initiated hold limited to the reported amount, and the proposed bank-initiated hold (flagged transactions of ₹1,000 or more, 20 days to explain, lifted on day 31 unless police instruct otherwise, 60 days at most; still a draft).
+- An `effective_from` field is not in the schema yet.
+
+## What is here now
+
+- `rules.json` — `{ _note, rules: [...], ladder: {...} }`. 10 rules, all `verified: true`, checked 2026-11-15. Each rule:
+  - `id` (lowercase, digits, hyphens; unique), `instrument`, `summary`
+  - `status`: `statute` | `contested` | `administrative` | `binding_direction` | `draft`
+  - `applies_when`: array of `police_hold` / `bank_hold` (empty means reference only, e.g. `bnss-106`, `bnss-107`)
+  - `source_name`, `source_url` (nullable), `last_checked` (`YYYY-MM-DD`, nullable), `verified` (a verified rule must have both URL and date)
+- `ladder` — `{ placeholder, source_rule, note, steps }`; each step `{ level, to, days, deadline }`. `days` is how long that step has to act. Today: bank 7, police officer 15, District Grievance Officer 15 (from `mha-procedure-2026`). Escalation is due on the sum of every step but the last: day 22.
+- `feeds.json` — `{ _note, poll_minutes: 30, feeds: [{ id, name, url }], watch: [{ rules: [ids], keywords: [...] }] }`. Feeds: RBI notifications, RBI press releases, PIB. MHA, I4C, the Supreme Court and India Code publish no feed. Every rule id named must exist or the app fails at load.
+
+The schema and validator are not a separate file: they are zod schemas in `backend/rules.ts` (`validateRules`) and `backend/watcher.ts` (`validateFeeds`), run when those modules load. Quotes and section numbers behind each entry are in `docs/sources.md`.
+
+Templates and drafts cite rules as `[rule:<id>]` markers, so renaming an id breaks `templates/drafts.ts` and the draft checks.
 
 ## Rules for this folder
 
@@ -23,4 +29,5 @@ The verified rules table. This is the single source of legal and procedural fact
 - Never state a contested point as settled. Section 106 has conflicting High Court rulings (Delhi, Bombay and Kerala against police freezing; Allahabad and Karnataka for it); the Supreme Court has not resolved it.
 - Draft instruments are labelled as drafts everywhere they surface.
 - Entries are edited by hand and reviewed. The LLM never writes to this folder at runtime.
-- When a rule changes, update `last_checked` and keep the old entry's history in git rather than silently overwriting meaning.
+- The law watcher flags, it does not edit. When a rule is flagged, a person reads the source, updates the entry and moves `last_checked` past the item's date, which clears the flag.
+- When a rule changes, update `last_checked` and keep the old entry's history in git rather than silently overwriting meaning. Update `docs/sources.md` with it.
