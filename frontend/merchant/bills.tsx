@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Bill } from "@backend/types";
 import { inr, when } from "../parts";
-import { Card, NAVY } from "./chrome";
+import { Card, NAVY, PRIMARY } from "./chrome";
 
 const STATUS: Record<Bill["status"], { label: string; cls: string }> = {
   open: { label: "Waiting for payment", cls: "bg-amber-50 text-amber-800 border-amber-200" },
@@ -54,7 +54,7 @@ export function BillsTab({
         <form onSubmit={submit} className="space-y-3">
           <label className="block">
             <span className="text-xs font-medium text-slate-500">Amount · रक़म</span>
-            <div className="mt-1 flex items-center rounded-xl border border-slate-300 px-3 focus-within:border-[#00BAF2]">
+            <div className="mt-1 flex items-center rounded-xl border border-slate-300 px-3 focus-within:border-brand">
               <span className="text-2xl font-semibold text-slate-400">₹</span>
               <input
                 inputMode="decimal"
@@ -72,14 +72,14 @@ export function BillsTab({
               value={text}
               onChange={(e) => setText(e.target.value.slice(0, 300))}
               placeholder="दो किलो चीनी, एक तेल"
-              className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[15px] text-slate-900 outline-none focus:border-[#00BAF2]"
+              className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[15px] text-slate-900 outline-none focus:border-brand"
             />
           </label>
           <button
             type="submit"
             disabled={!valid || busy !== null}
             className="w-full rounded-full py-3 text-sm font-semibold text-white disabled:opacity-50"
-            style={{ background: BLUE_BTN }}
+            style={{ background: PRIMARY }}
           >
             {busy === "bill-create" ? "Creating…" : "Create bill"}
           </button>
@@ -133,4 +133,3 @@ export function BillsTab({
   );
 }
 
-const BLUE_BTN = "#00BAF2";

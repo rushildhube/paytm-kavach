@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
 import QRCode from "qrcode";
 import jsQR from "jsqr";
+import { BRAND } from "@frontend/brand";
 import { buildUpiUri, parseUpiUri } from "@frontend/upi";
 
-const VPA = "sharmakirana@demopaytm";
+const VPA = `sharmakirana@${BRAND.vpaDomain}`;
 const SHOP = "Sharma Kirana Store";
 
 describe("buildUpiUri", () => {
   it("builds a static shop QR with %20, not +", () => {
     expect(buildUpiUri({ pa: VPA, pn: SHOP })).toBe(
-      "upi://pay?pa=sharmakirana%40demopaytm&pn=Sharma%20Kirana%20Store&cu=INR",
+      `upi://pay?pa=sharmakirana%40${BRAND.vpaDomain}&pn=Sharma%20Kirana%20Store&cu=INR`,
     );
   });
 
@@ -33,11 +34,11 @@ describe("parseUpiUri", () => {
   });
 
   it("accepts a plain @ and + for spaces as other apps write them, and matches the payee case-insensitively", () => {
-    const r = parseUpiUri("UPI://pay?pa=SharmaKirana@DemoPaytm&pn=Sharma+Kirana&am=10", VPA);
+    const r = parseUpiUri(`UPI://pay?pa=SharmaKirana@${BRAND.vpaDomain.toUpperCase()}&pn=Sharma+Kirana&am=10`, VPA);
     expect(r.ok && r.payment.pn).toBe("Sharma Kirana");
   });
 
-  it.each(["https://paytm.com", "upi://mandate?pa=" + VPA, "hello", "", "upi://pay?pn=x", "upi://pay?pa=nope"])(
+  it.each(["https://example.com", "upi://mandate?pa=" + VPA, "hello", "", "upi://pay?pn=x", "upi://pay?pa=nope"])(
     "rejects a non-UPI or malformed QR: %s",
     (text) => {
       expect(parseUpiUri(text, VPA)).toEqual({ ok: false, reason: "not-upi" });

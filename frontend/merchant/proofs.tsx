@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { Snapshot } from "@backend/api";
+import { BRAND } from "../brand";
 import { inr, when } from "../parts";
 import { BoundByChip, Card, NAVY } from "./chrome";
 
@@ -106,7 +107,7 @@ function ProofCard({
 
       {open && (
         <div className="mt-3 border-t border-slate-100 pt-2 text-[13px]">
-          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">From Paytm records</h4>
+          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">From {BRAND.name} records</h4>
           <Field k="Transaction ID" v={t.id} mono />
           <Field k="Amount" v={inr(t.amountInr)} />
           <Field k="Paid at" v={new Date(t.at).toLocaleString("en-IN")} />
@@ -161,7 +162,7 @@ function ProofCard({
                 <button
                   disabled={busy}
                   onClick={() => file.current?.click()}
-                  className="mt-2 w-full rounded-xl border border-[#00BAF2] py-2 font-medium text-[#0079A8] disabled:opacity-50"
+                  className="mt-2 w-full rounded-xl border border-brand py-2 font-medium text-brand disabled:opacity-50"
                 >
                   📎 Attach invoice photo / PDF ({t.secondsLeft}s left)
                 </button>
@@ -205,23 +206,23 @@ export function ProofsTab({
     <div className="space-y-3">
       <Card title="Kavach · बिक्री का सबूत">
         <p className="text-sm text-slate-600">
-          Each payment&apos;s proof is recorded at the moment of sale, tied to Paytm&apos;s own transaction and
+          Each payment&apos;s proof is recorded at the moment of sale, tied to {BRAND.name}&apos;s own transaction and
           settlement ids.
         </p>
         <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-xl bg-[#E5F8FE] p-2">
+          <div className="rounded-xl bg-brand-tint p-2">
             <div className="text-lg font-bold" style={{ color: NAVY }}>
               {proven}/{due.length}
             </div>
             <div className="text-[11px] text-slate-600">sales ≥ ₹{state.thresholdInr} with proof</div>
           </div>
-          <div className="rounded-xl bg-[#E5F8FE] p-2">
+          <div className="rounded-xl bg-brand-tint p-2">
             <div className="text-lg font-bold" style={{ color: NAVY }}>
               {state.transactions.filter((t) => t.billId).length}
             </div>
             <div className="text-[11px] text-slate-600">paid by bill</div>
           </div>
-          <div className="rounded-xl bg-[#E5F8FE] p-2">
+          <div className="rounded-xl bg-brand-tint p-2">
             <div className="text-lg font-bold" style={{ color: NAVY }}>
               {state.transactions.filter((t) => t.invoice).length}
             </div>

@@ -4,6 +4,12 @@
 
 @theme inline {
   --font-sans: var(--font-latin), var(--font-devanagari), system-ui, sans-serif;
+  /* Brand palette. Values come from frontend/brand.ts via layout.tsx. */
+  --color-brand: var(--brand-primary);
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-tint: var(--brand-tint);
+  --color-brand-deep: var(--brand-deep);
 }
 
 body {
