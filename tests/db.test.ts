@@ -169,7 +169,6 @@ describe("bill-first payments (#15)", () => {
     const paid = await call<{ txn: Transaction; bill: Bill; tag: SaleTag; needsTag: boolean }>({
       action: "pay",
       billId: bill.id,
-      role: "customer",
     });
     expect(paid.needsTag).toBe(false);
     expect(paid.tag).toMatchObject({ txnId: paid.txn.id, source: "bill", boundBy: "bill", billId: bill.id });
@@ -200,6 +199,40 @@ describe("bill-first payments (#15)", () => {
     await handle({ action: "merchant", merchantId: "m_mule" });
     await expect(handle({ action: "pay", billId: bill.id })).rejects.toThrow(/another merchant/);
     await expect(handle({ action: "bill-cancel", billId: bill.id })).rejects.toThrow(/another merchant/);
+  });
+
+  it("the customer's pay reply is a receipt only: no bill text, items, tag or merchant id", async () => {
+    const bill = await call<Bill>({ action: "bill-create", amountInr: 826, text: "do kilo cheeni, ek tel" });
+    const byBill = await call<Record<string, unknown>>({
+      action: "pay",
+      billId: bill.id,
+      payerVpa: "vikram.demo@okdemo",
+      role: "customer",
+    });
+    const byAmount = await call<Record<string, unknown>>({ action: "pay", amountInr: 560, role: "customer" });
+    for (const reply of [byBill, byAmount]) {
+      expect(Object.keys(reply)).toEqual(["txn"]);
+      expect(Object.keys(reply.txn as object).sort()).toEqual(["amountInr", "at", "id"]);
+      const text = JSON.stringify(reply);
+      for (const leak of ["cheeni", "m_kirana", "merchantId", "payerVpa", "billId", "vikram"]) {
+        expect(text).not.toContain(leak);
+      }
+    }
+    // The bill still bound its tag on the server side.
+    const txnId = (byBill.txn as { id: string }).id;
+    expect(store().saleTags.find((t) => t.txnId === txnId)?.boundBy).toBe("bill");
+  });
+
+  it("bill ids fit the UPI QR reference pattern and bills are capped at ₹1,00,000", async () => {
+    const bill = await call<Bill>({ action: "bill-create", amountInr: 100_000, text: "" });
+    expect(bill.id).toMatch(/^[A-Za-z0-9-]{1,64}$/);
+    await expect(handle({ action: "bill-create", amountInr: 100_001 })).rejects.toThrow(/invalid request/);
+    await expect(handle({ action: "bill-lookup", billId: "BILL 1; drop" })).rejects.toThrow(/invalid request/);
+  });
+
+  it("the merchant snapshot carries the shop's UPI handle", async () => {
+    const state = (await handle({ action: "state" })).state as { merchant: { vpa: string } };
+    expect(state.merchant.vpa).toBe("sharmakirana@demopaytm");
   });
 
   it("bill-lookup shows the customer only id, amount, status and shop name", async () => {

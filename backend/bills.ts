@@ -14,8 +14,14 @@ import type { Bill } from "./types";
  * Stored in the `bills` table. Triggers keep the content fixed and let the
  * status move only once, out of "open".
  */
+/** Highest amount one bill may carry. The API schema uses the same cap. */
+export const MAX_BILL_INR = 1_00_000;
+
+/** Bill ids travel in the UPI QR's `tr` field; frontend/upi.ts accepts only this shape. */
+export const BILL_ID_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
+
 export function createBill(amountInr: number, text: string): Bill {
-  if (!Number.isFinite(amountInr) || amountInr <= 0 || amountInr > 1_00_000) {
+  if (!Number.isFinite(amountInr) || amountInr <= 0 || amountInr > MAX_BILL_INR) {
     throw new LedgerError("bill amount must be between ₹1 and ₹1,00,000");
   }
   const clean = text.trim().slice(0, 300);

@@ -9,7 +9,16 @@ import { spokenAmountsInr } from "@voice/amounts";
 import { parseSaleItems } from "@voice/parser";
 import { sarvamConfigured } from "@voice/sarvam";
 import { VOICE_LANGUAGES } from "@voice/languages";
-import { cancelBill, createBill, getBill, merchantBills, ownBill, settleBill } from "./bills";
+import {
+  BILL_ID_PATTERN,
+  cancelBill,
+  createBill,
+  getBill,
+  MAX_BILL_INR,
+  merchantBills,
+  ownBill,
+  settleBill,
+} from "./bills";
 import { buildCertificate, type SaleCertificate } from "./certificate";
 import {
   DISCLAIMER,
@@ -100,7 +109,7 @@ export function snapshot() {
     epoch: epoch(),
     now: now().toISOString(),
     simulatedDays: Math.round(clockOffsetMs() / 86_400_000),
-    merchant,
+    merchant: { ...merchant, vpa: DEMO_PAYEE_VPA },
     merchants: allMerchants().map((m) => ({ id: m.id, shopName: m.shopName })),
     thresholdInr: TAG_THRESHOLD_INR,
     tagWindowSeconds: TAG_WINDOW_SECONDS,
@@ -222,6 +231,7 @@ export const MAX_TRANSCRIPT_CHARS = 500;
 export const MAX_PAYMENT_INR = 500_000;
 
 const id = z.string().min(1).max(64);
+const billId = z.string().regex(BILL_ID_PATTERN);
 const act = <A extends string, S extends z.ZodRawShape>(action: A, shape: S) =>
   z.object({ action: z.literal(action), role: z.enum(ROLES).optional(), ...shape });
 
@@ -233,7 +243,7 @@ const ActionSchema = z.discriminatedUnion("action", [
   act("pay", {
     amountInr: z.number().positive().max(MAX_PAYMENT_INR).optional(),
     payerVpa: z.string().max(100).optional(),
-    billId: id.optional(),
+    billId: billId.optional(),
   }),
   act("tag", {
     txnId: id,
@@ -246,11 +256,11 @@ const ActionSchema = z.discriminatedUnion("action", [
   }),
   act("settings", { language: z.string().max(10) }),
   act("bill-create", {
-    amountInr: z.number().positive().max(MAX_PAYMENT_INR),
+    amountInr: z.number().positive().max(MAX_BILL_INR),
     text: z.string().max(300).optional(),
   }),
-  act("bill-cancel", { billId: id }),
-  act("bill-lookup", { billId: id }),
+  act("bill-cancel", { billId }),
+  act("bill-lookup", { billId }),
   act("report", { txnId: id }),
   act("hold", { txnId: id, scope: z.enum(["lien", "debit_freeze"]).optional() }),
   act("explain", { holdId: id }),
@@ -345,10 +355,15 @@ export async function handle(raw: unknown) {
             : null;
           return { txn, needsTag: false, bill: paid, tag };
         });
-        break;
+      } else {
+        const txn = recordPayment(input.amountInr ?? DEMO_PAYMENT.amountInr, payer);
+        result = { txn, needsTag: needsTag(txn.amountInr) };
       }
-      const txn = recordPayment(input.amountInr ?? DEMO_PAYMENT.amountInr, payer);
-      result = { txn, needsTag: needsTag(txn.amountInr) };
+      if (input.role === "customer") {
+        // The buyer's phone gets its receipt only: no bill text, items, tag or merchant id.
+        const { txn } = result as { txn: { id: string; amountInr: number; at: string } };
+        result = { txn: { id: txn.id, amountInr: txn.amountInr, at: txn.at } };
+      }
       break;
     }
     case "tag":
