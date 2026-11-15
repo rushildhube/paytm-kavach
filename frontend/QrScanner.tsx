@@ -36,6 +36,7 @@ export function QrScanner({
     let stream: MediaStream | null = null;
     let raf = 0;
     let lastRejected = "";
+    let rejectedAt = 0;
     const videoEl = videoRef.current;
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
@@ -50,13 +51,15 @@ export function QrScanner({
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
-        if (code?.data && code.data !== lastRejected) {
+        // A refused QR is retried after 1.5 s (e.g. it was scanned before the shop data loaded).
+        if (code?.data && (code.data !== lastRejected || performance.now() - rejectedAt > 1500)) {
           const problem = decodeRef.current(code.data);
           if (problem === null) {
             stopped = true;
             return;
           }
           lastRejected = code.data;
+          rejectedAt = performance.now();
           setNotice(problem);
         }
       }

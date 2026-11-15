@@ -87,12 +87,19 @@ export default function CustomerApp() {
     [payee, openBill, setError],
   );
 
+  /** Clear any error left from an earlier refused payment before a new scan. */
+  const startScan = useCallback(() => {
+    setError(null);
+    setStep("scan");
+  }, [setError]);
+
   /** Demo fallback when no camera works: the shop's static QR, ₹826 prefilled. */
   const pickShop = useCallback(() => {
+    setError(null);
     setBill(null);
     setAmount(String(DEMO_PAYMENT.amountInr));
     setStep("amount");
-  }, []);
+  }, [setError]);
 
   const pay = useCallback(async () => {
     setStep("paying");
@@ -149,7 +156,7 @@ export default function CustomerApp() {
             <section className="rounded-2xl bg-white p-4 shadow-sm">
               <h2 className="text-sm font-bold text-[#002E6E]">UPI Money Transfer</h2>
               <div className="mt-4 grid grid-cols-4 gap-2 text-center text-[11px] leading-tight text-slate-700">
-                <button onClick={() => setStep("scan")} className="flex flex-col items-center gap-1.5">
+                <button onClick={startScan} className="flex flex-col items-center gap-1.5">
                   <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#002E6E] text-white shadow">
                     <QrIcon />
                   </span>
@@ -173,7 +180,7 @@ export default function CustomerApp() {
           </main>
           <div className="sticky bottom-0 flex justify-center bg-gradient-to-t from-white pb-5 pt-3">
             <button
-              onClick={() => setStep("scan")}
+              onClick={startScan}
               className="flex items-center gap-2 rounded-full px-7 py-3.5 font-semibold text-white shadow-lg active:scale-95"
               style={{ background: PAYTM_BLUE }}
             >
@@ -275,6 +282,7 @@ export default function CustomerApp() {
             <main className="flex min-h-dvh flex-col bg-[#F2F2F2]">
               <div className="flex items-center justify-between bg-white px-4 py-3 text-sm">
                 <span className="font-semibold text-slate-800">Demo Bank</span>
+                <DemoBadge />
                 <span className="text-slate-500">XXXX0042</span>
               </div>
               <div className="flex items-center justify-between bg-[#E8EAF6] px-4 py-3 text-sm">
