@@ -27,7 +27,7 @@ function SettlementLine({ t, accountLast4 }: { t: Txn; accountLast4: string }) {
       Settled to •••• {accountLast4} · UTR {t.settlement.utr}
     </span>
   ) : (
-    <span className="text-slate-500">Settlement pending</span>
+    <span className="text-slate-500">सेटलमेंट बाकी · Settlement pending</span>
   );
 }
 
@@ -141,7 +141,7 @@ function TagControls({ t, tagging }: { t: Txn; tagging: Tagging }) {
           className="rounded-full border bg-white px-4 py-2 text-sm font-semibold disabled:opacity-50"
           style={{ color: NAVY, borderColor: NAVY }}
         >
-          Use recorded clip
+          रिकॉर्ड की हुई आवाज़ · Recorded clip
         </button>
         <button
           onClick={() => setWriting((w) => !w)}
@@ -202,7 +202,7 @@ export function PaymentList({
   const shown = limit ? transactions.slice(0, limit) : transactions;
   return (
     <Card
-      title={limit ? "Recent payments" : "All payments"}
+      title={limit ? "हाल के पेमेंट · Recent payments" : "सभी पेमेंट · All payments"}
       action={
         onSeeAll && transactions.length > shown.length ? (
           <button onClick={onSeeAll} className="text-sm font-semibold" style={{ color: PRIMARY }}>
@@ -240,7 +240,7 @@ export function CollectionCard({ transactions }: { transactions: Txn[] }) {
       className="rounded-2xl p-4 text-white shadow-sm"
       style={{ background: `linear-gradient(135deg, ${NAVY} 0%, ${DEEP} 100%)` }}
     >
-      <div className="text-xs font-medium opacity-80">Total collection · कुल कलेक्शन</div>
+      <div className="text-xs font-medium opacity-80">कुल कलेक्शन · Total collection</div>
       <div className="mt-0.5 text-3xl font-bold">{inr(total)}</div>
       <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
         <Stat label="Payments" value={transactions.length} />

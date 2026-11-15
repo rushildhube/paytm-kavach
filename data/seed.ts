@@ -106,6 +106,7 @@ export function seedTransactions(base: number): {
         { name: "दाल", quantity: 2, unit: "किलो" },
       ],
       source: "voice",
+      boundBy: "tap",
     },
     {
       txnId: "TXN1003",
@@ -116,6 +117,7 @@ export function seedTransactions(base: number): {
         { name: "साबुन", quantity: 2, unit: null },
       ],
       source: "voice",
+      boundBy: "tap",
     },
   ];
 

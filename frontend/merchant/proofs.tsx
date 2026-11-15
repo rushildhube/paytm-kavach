@@ -20,9 +20,9 @@ function secondsAfter(t: Txn): number | null {
 type Status = { label: string; cls: string };
 
 function statusOf(t: Txn, thresholdInr: number): Status {
-  if (t.canTag || t.canAttachInvoice) return { label: "Recording window open", cls: "bg-amber-50 text-amber-800 border-amber-200" };
-  if (t.amountInr < thresholdInr) return { label: `Below ₹${thresholdInr}: not asked`, cls: "bg-slate-100 text-slate-600 border-slate-200" };
-  return { label: "No proof recorded", cls: "bg-slate-100 text-slate-600 border-slate-200" };
+  if (t.canTag || t.canAttachInvoice) return { label: "सबूत का समय चालू · Recording open", cls: "bg-amber-50 text-amber-800 border-amber-200" };
+  if (t.amountInr < thresholdInr) return { label: `₹${thresholdInr} से कम · tag not needed`, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+  return { label: "कोई सबूत नहीं · No proof", cls: "bg-slate-100 text-slate-600 border-slate-200" };
 }
 
 /** Plain-text record the merchant can copy. Ids and records only; masked payer. */

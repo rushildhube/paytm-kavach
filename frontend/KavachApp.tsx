@@ -238,6 +238,7 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
 
   const holdFlow = hold && (
     <>
+      <Disclaimer text={`${state.disclaimerHi} ${state.disclaimer}`} />
       <HoldAlert
         hold={hold}
         explanation={explanation}
@@ -293,7 +294,7 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
           onHoldTap={() => goTo("home")}
         />
 
-        <div className="flex-1 space-y-3 p-3">
+        <div className="flex-1 space-y-3 p-3 pb-8">
           {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
           {tab === "home" && (
@@ -302,10 +303,10 @@ export default function KavachApp({ controls = true }: { controls?: boolean }) {
               <CollectionCard transactions={state.transactions} />
               <Card>
                 <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-medium text-slate-700">
-                  <QuickAction icon="▤" label="Create bill" badge={openBills} onClick={() => goTo("bills")} />
-                  <QuickAction icon="₹" label="Payments" onClick={() => goTo("payments")} />
-                  <QuickAction icon="🔊" label="Soundbox" onClick={() => goTo("soundbox")} />
-                  <QuickAction icon="🛡" label="Proofs" onClick={() => goTo("proofs")} />
+                  <QuickAction icon="▤" label="बिल बनाइए" badge={openBills} onClick={() => goTo("bills")} />
+                  <QuickAction icon="₹" label="पेमेंट" onClick={() => goTo("payments")} />
+                  <QuickAction icon="🔊" label="साउंडबॉक्स" onClick={() => goTo("soundbox")} />
+                  <QuickAction icon="🛡" label="सबूत" onClick={() => goTo("proofs")} />
                 </div>
               </Card>
               {!hold && (

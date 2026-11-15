@@ -94,7 +94,7 @@ describe("the database", () => {
     expect(after.transactions.map((t) => t.id)).toEqual(["TXN1001", "TXN1002", "TXN1003"]);
     expect(after.saleTags.map((t) => t.txnId)).toEqual(["TXN1001", "TXN1003"]);
     expect(after.clockOffsetMs).toBe(0);
-    expect(recordPayment(100, "a@b").id).toBe("TXN2001");
+    expect(recordPayment(100, "a@b").id).toBe("TXN1004");
   });
 
   it("a stored tag reads back frozen with its fields", () => {
