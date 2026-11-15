@@ -53,3 +53,6 @@ certificates
 # demo video build output (upload the mp4, do not commit it)
 /demo/video/*.mp4
 /demo/video/cues.json
+
+# live smoke test output
+/smoke-out/
