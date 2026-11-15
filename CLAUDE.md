@@ -50,11 +50,12 @@ Each folder has its own `CLAUDE.md` describing what belongs there.
 
 ## Working together
 
-Two people (and their agents) work on separate branches. Coordination lives in GitHub issues on `rushildhube/paytm-kavach`.
+Two people (and their agents) work on separate branches and talk only through GitHub issues on `rushildhube/paytm-kavach`. The rules are in pinned issue #8; read it first.
 
-- At the start of a session, run `gh issue list` and read the issues for the area you are touching.
-- When you change something another branch depends on (a schema, an API action, a snapshot field), comment on the matching issue.
-- Reference the issue in commits (`refs #N`) and close it when the work is merged to `main`.
+- At the start of a session, run `gh issue list` and read the issues for the area you are touching, plus new comments on `coordination` issues.
+- Before pushing a change another branch depends on (a schema, an API action, a snapshot field, the demo script), comment on the matching issue.
+- Reference the issue in commits (`refs #N`). Merge to `main` only through a PR, after commenting on #6.
+- Run/test/API guide: #9. Known pitfalls: #10. Unowned work: #11.
 
 ## Caveat on facts
 
