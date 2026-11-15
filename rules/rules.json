@@ -1,108 +1,139 @@
 {
-  "_note": "Entries marked verified:false were taken from research notes and have NOT been checked against the primary source. They must be verified (source_url + last_checked filled in) before real use. The UI labels them as unverified.",
+  "_note": "Checked against primary sources on 2026-11-15. Quotes and section numbers for each entry are in docs/sources.md. The law watcher (rules/feeds.json) flags entries that official news may have changed; a person re-reads the source and updates the entry and its last_checked date.",
   "rules": [
     {
       "id": "hold-limited-to-amount",
-      "instrument": "BNSS sections 168 and 94",
-      "status": "statute",
-      "summary": "A hold is limited to the amount that was reported, not the whole account balance.",
+      "instrument": "MHA procedure of 2 January 2026, section 9.1 (police directions under BNSS sections 168 and 94)",
+      "status": "administrative",
+      "summary": "When a fraud report reaches the bank, it holds the reported amount, or the part of it still in the account, not the whole balance. Suspending digital banking or seizing the account is for accounts reported multiple times, and needs separate lawful directions from the police.",
       "applies_when": ["police_hold"],
-      "source_name": "Research notes (LiveLaw reporting on the Home Ministry procedure)",
-      "source_url": null,
-      "last_checked": null,
-      "verified": false
+      "source_name": "MHA SOP for NCRP-CFCFRMS, Custody, Restoration of Money and Grievance Redressal (2 January 2026), as annexed to the Meghalaya High Court notification of 28 April 2026",
+      "source_url": "https://meghalayahighcourt.nic.in/sites/default/files/news/N347.pdf",
+      "last_checked": "2026-11-15",
+      "verified": true
     },
     {
       "id": "mha-procedure-2026",
-      "instrument": "Home Ministry procedure of 2 January 2026 (NCRP-CFCFRMS)",
+      "instrument": "MHA procedure of 2 January 2026, section 10.1",
       "status": "administrative",
-      "summary": "Sets out a grievance ladder and deadlines for account holders whose money is held after a cyber-fraud report.",
+      "summary": "For a held amount, the account holder complains at their bank, which must file the grievance within 7 calendar days. The police officer on the case must release the hold or record reasons within 15 calendar days; if they do not act, the grievance goes automatically to the District Grievance Officer, who decides within 15 calendar days.",
       "applies_when": ["police_hold"],
-      "source_name": "Research notes (Home Ministry SOP for NCRP-CFCFRMS)",
-      "source_url": null,
-      "last_checked": null,
-      "verified": false
+      "source_name": "MHA SOP for NCRP-CFCFRMS, Custody, Restoration of Money and Grievance Redressal (2 January 2026), as annexed to the Meghalaya High Court notification of 28 April 2026",
+      "source_url": "https://meghalayahighcourt.nic.in/sites/default/files/news/N347.pdf",
+      "last_checked": "2026-11-15",
+      "verified": true
+    },
+    {
+      "id": "hold-90-days",
+      "instrument": "MHA procedure of 2 January 2026, section 10.1",
+      "status": "administrative",
+      "summary": "If no lawful direction to continue a contested hold arrives within 90 calendar days of the bank filing the grievance, the bank removes the hold on the account holder's request, unless the police ask to extend it by up to 90 more days.",
+      "applies_when": ["police_hold"],
+      "source_name": "MHA SOP for NCRP-CFCFRMS, Custody, Restoration of Money and Grievance Redressal (2 January 2026), as annexed to the Meghalaya High Court notification of 28 April 2026",
+      "source_url": "https://meghalayahighcourt.nic.in/sites/default/files/news/N347.pdf",
+      "last_checked": "2026-11-15",
+      "verified": true
     },
     {
       "id": "grievance-via-bank",
-      "instrument": "Government grievance module",
+      "instrument": "Grievance Redressal Module of NCRP-CFCFRMS",
       "status": "administrative",
-      "summary": "The account holder's bank registers the grievance and issues a grievance ID; police review it online.",
+      "summary": "The bank checks the account holder's explanation and files the grievance on the government's online Grievance Redressal Module, where the police record their decision. The module has been running since April 2026.",
       "applies_when": ["police_hold"],
-      "source_name": "Research notes (reporting on the grievance module)",
-      "source_url": null,
-      "last_checked": null,
-      "verified": false
+      "source_name": "MHA SOP of 2 January 2026, section 10.1; PIB release 2287674 (22 July 2026)",
+      "source_url": "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2287674",
+      "last_checked": "2026-11-15",
+      "verified": true
+    },
+    {
+      "id": "police-contact-from-bank",
+      "instrument": "MHA procedure of 2 January 2026, section 9.1(ii)",
+      "status": "administrative",
+      "summary": "When the account holder asks, the bank may tell them which police unit ordered the hold and how to contact it. This is not treated as tipping off. The complainant's details are never shared.",
+      "applies_when": ["police_hold"],
+      "source_name": "MHA SOP for NCRP-CFCFRMS, Custody, Restoration of Money and Grievance Redressal (2 January 2026), as annexed to the Meghalaya High Court notification of 28 April 2026",
+      "source_url": "https://meghalayahighcourt.nic.in/sites/default/files/news/N347.pdf",
+      "last_checked": "2026-11-15",
+      "verified": true
     },
     {
       "id": "merchant-sale-details",
-      "instrument": "Home Ministry procedure of 2 January 2026 (NCRP-CFCFRMS)",
+      "instrument": "MHA procedure of 2 January 2026, sections 9.5 and 10.1(a)",
       "status": "administrative",
-      "summary": "The procedure expects a merchant to supply details of the sale behind a reported payment.",
+      "summary": "The account holder gives the bank their explanation of the payment, and the bank weighs it before filing the grievance. Where a payment aggregator or e-commerce company is involved, it is expected to upload the settlement and order details. The procedure lists no fixed set of documents.",
       "applies_when": ["police_hold"],
-      "source_name": "Research notes (Home Ministry SOP for NCRP-CFCFRMS)",
-      "source_url": null,
-      "last_checked": null,
-      "verified": false
+      "source_name": "MHA SOP for NCRP-CFCFRMS, Custody, Restoration of Money and Grievance Redressal (2 January 2026), as annexed to the Meghalaya High Court notification of 28 April 2026",
+      "source_url": "https://meghalayahighcourt.nic.in/sites/default/files/news/N347.pdf",
+      "last_checked": "2026-11-15",
+      "verified": true
     },
     {
       "id": "sc-directions-2026-08-04",
-      "instrument": "Supreme Court directions of 4 August 2026",
+      "instrument": "Supreme Court order of 4 August 2026, In Re: Victims of Digital Arrest, SMW(Crl) No. 3/2025",
       "status": "binding_direction",
-      "summary": "All states were directed to operationalise the grievance and money restoration modules and to dispose of account-freeze cases quickly. The grievance route does not bar other legal remedies.",
+      "summary": "All States, Union Territories and police were directed to adopt and run the grievance and money-restoration modules of the 2 January 2026 procedure. A person should ordinarily try that grievance route first, but it does not bar any other legal remedy.",
       "applies_when": ["police_hold"],
-      "source_name": "Research notes (ANI and MediaNama reporting)",
-      "source_url": null,
-      "last_checked": null,
-      "verified": false
+      "source_name": "Supreme Court of India, record of proceedings dated 4 August 2026",
+      "source_url": "https://api.sci.gov.in/supremecourt/2025/59769/59769_2025_1_30_72575_Order_04-Aug-2026.pdf",
+      "last_checked": "2026-11-15",
+      "verified": true
     },
     {
       "id": "bnss-106",
       "instrument": "BNSS section 106",
       "status": "contested",
-      "summary": "Police seizure power. High Courts disagree on whether it allows freezing a bank account; the Supreme Court has not settled the question.",
+      "summary": "Police power to seize property suspected to be linked to an offence. High Courts are split on whether it lets police freeze a bank account without a Magistrate's order (Delhi, Bombay and Kerala say no; Allahabad and Karnataka say yes, Allahabad only up to the suspect amount). The Supreme Court has not decided the point.",
       "applies_when": [],
-      "source_name": "Research notes",
-      "source_url": null,
-      "last_checked": null,
-      "verified": false
+      "source_name": "BNSS 2023, Gazette of India No. 54 of 25 December 2023; Delhi High Court, Malabar Gold and Diamond Ltd v. Union of India, 16 January 2026",
+      "source_url": "https://egazette.gov.in/WriteReadData/2023/250884.pdf",
+      "last_checked": "2026-11-15",
+      "verified": true
     },
     {
       "id": "bnss-107",
       "instrument": "BNSS section 107",
       "status": "statute",
-      "summary": "Attachment of property goes through a magistrate, with notice and a hearing.",
+      "summary": "To attach suspected proceeds of crime, police must apply to a Court or Magistrate, which normally gives 14 days' notice to show cause and a hearing, but may order an interim attachment without notice.",
       "applies_when": [],
-      "source_name": "Research notes",
-      "source_url": null,
-      "last_checked": null,
-      "verified": false
+      "source_name": "BNSS 2023, Gazette of India No. 54 of 25 December 2023",
+      "source_url": "https://egazette.gov.in/WriteReadData/2023/250884.pdf",
+      "last_checked": "2026-11-15",
+      "verified": true
     },
     {
       "id": "rbi-draft-bank-hold",
-      "instrument": "RBI draft KYC amendment of 11 September 2026",
+      "instrument": "RBI draft (Know Your Customer) Amendment Directions, 2026, released 11 September 2026",
       "status": "draft",
-      "summary": "Draft only. A bank could itself hold a flagged transaction of ₹1,000 or more; the customer would have 20 days to explain, and the hold would lift at 60 days unless police step in.",
+      "summary": "Draft only, not in force. Banks could themselves hold a flagged transaction of ₹1,000 or more, give the customer 20 days to explain, decide within 30 days, and lift the hold on day 31 unless police instruct otherwise, with 60 days as the outer limit. It would not apply to nodal, pool or escrow accounts. The draft proposes a start of 1 April 2027; a Supreme Court order of 29 October 2026 expects final rules by the end of 2026.",
       "applies_when": ["bank_hold"],
-      "source_name": "Research notes (ThePrint and MediaNama reporting)",
-      "source_url": null,
-      "last_checked": null,
-      "verified": false
+      "source_name": "Reserve Bank of India press release 2026-2027/1109 and draft text",
+      "source_url": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63587",
+      "last_checked": "2026-11-15",
+      "verified": true
     }
   ],
   "ladder": {
-    "placeholder": true,
-    "note": "The 15-day figure is a demo placeholder. Replace with the actual deadlines from the Home Ministry procedure once verified.",
+    "placeholder": false,
+    "source_rule": "mha-procedure-2026",
+    "note": "From the MHA procedure of 2 January 2026, section 10.1. Day counts assume the bank files on the last day it is allowed.",
     "steps": [
       {
         "level": 1,
-        "to": "Your bank branch (grievance registered through the bank)",
-        "escalate_after_days": 15
+        "to": "Your bank branch, which files the grievance on the Grievance Redressal Module",
+        "days": 7,
+        "deadline": "Files within 7 calendar days of your complaint"
       },
       {
         "level": 2,
-        "to": "The next officer on the grievance ladder",
-        "escalate_after_days": null
+        "to": "The police officer on the case",
+        "days": 15,
+        "deadline": "Releases the hold or records reasons within 15 calendar days"
+      },
+      {
+        "level": 3,
+        "to": "The District Grievance Officer (Additional SP or Deputy SP rank)",
+        "days": 15,
+        "deadline": "Gets the grievance automatically if the police officer does not act; decides within 15 calendar days"
       }
     ]
   }

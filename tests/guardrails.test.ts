@@ -100,6 +100,22 @@ describe("rules table", () => {
     for (const r of allRules()) expect(r.source_name.length).toBeGreaterThan(0);
   });
 
+  it("every rule has been checked against a primary source", () => {
+    for (const r of allRules()) {
+      expect(r.verified, r.id).toBe(true);
+      expect(r.source_url, r.id).toMatch(/^https:\/\//);
+      expect(r.last_checked, r.id).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
+  it("the ladder follows the MHA procedure: bank 7 days, police 15, then the District Grievance Officer", async () => {
+    const { escalateAfterDays, escalationTarget, ladder, ladderStepOn } = await import("@backend/rules");
+    expect(ladder().placeholder).toBe(false);
+    expect(escalateAfterDays()).toBe(22);
+    expect(escalationTarget().to).toMatch(/District Grievance Officer/);
+    expect([0, 6, 7, 21, 22, 40].map(ladderStepOn)).toEqual([0, 0, 1, 1, 2, 2]);
+  });
+
   it("a rule cannot be marked verified without a URL and a checked date", () => {
     const bad = {
       rules: [{ ...allRules()[0], verified: true, source_url: null, last_checked: null }],

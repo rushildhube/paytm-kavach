@@ -10,7 +10,7 @@ The merchant-facing demo UI, styled as a feature inside the Paytm merchant app.
 - **Explanation view** — the plain-language explanation in the merchant's language.
 - **Packet view** — the sale certificate and the drafted grievance, with review and download/share. The merchant files it themselves.
 - **Tracker** — where the grievance stands on the ladder, days elapsed, and the escalation draft when due.
-- **Demo controls** — trigger a payment, trigger a hold, "simulate day 15".
+- **Demo controls** — trigger a payment, trigger a hold, "simulate day 22".
 
 ## Rules for this folder
 

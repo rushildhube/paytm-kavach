@@ -35,7 +35,7 @@ Letter generators already exist (Wapas student prototype, lawyer/finance sites).
 | `voice/` | Voice sale tagging: speech to text, item parsing, tagging threshold |
 | `templates/` | Document templates: sale certificate, grievance, escalation |
 | `frontend/` | Merchant-facing demo UI |
-| `demo/` | Demo script, seeded scenario, "simulate day 15" controls |
+| `demo/` | Demo script, seeded scenario, "simulate day 22" controls |
 | `tests/` | Tests, including guardrail tests |
 | `tasks/` | `todo.md` (plan and progress) and `lessons.md` (corrections) |
 

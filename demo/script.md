@@ -10,7 +10,7 @@ Run `npm run dev` and open http://localhost:3000. Press **Reset demo** before ea
 | 4 | Answer **नहीं** to both questions, then **मेरे काग़ज़ तैयार कीजिए** | "Two screening questions first. Anyone who lent out their account is sent to legal aid instead." |
 | 5 | Scroll the certificate and grievance | "The certificate separates Paytm's records from the merchant's statement. Every rule in the letter shows its source." |
 | 6 | **मैंने इसे अपने बैंक में जमा कर दिया है** | "The merchant files it themselves. Kavach never sends anything." |
-| 7 | **Simulate day 15** | "No reply by the deadline, so the escalation draft is ready." |
+| 7 | **Simulate day 22** | "The bank had 7 days and the police officer 15. No decision, so the letter to the District Grievance Officer is ready." |
 
 ## Without the Sarvam key
 

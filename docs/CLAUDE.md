@@ -19,6 +19,6 @@ Human-readable material: the pitch, the research behind it, and the legal landsc
 ## Rules for this folder
 
 - Be honest about prior art. Say plainly that letter drafting exists and that the novelty is pre-freeze, payment-company-verified proof.
-- Mark the status of each legal instrument: statute, contested, administrative, binding direction, or draft. Section 106 is contested between High Courts; the RBI amendment is a draft that starts 18 months out.
+- Mark the status of each legal instrument: statute, contested, administrative, binding direction, or draft. Section 106 is contested between High Courts; the RBI amendment is a draft (proposed start 1 April 2027; the Supreme Court expects final rules by the end of 2026). See `sources.md` for what each claim rests on.
 - Every factual claim needs a source and a checked date. This area changed three times in 2026.
 - No claim that Kavach guarantees release of funds.
